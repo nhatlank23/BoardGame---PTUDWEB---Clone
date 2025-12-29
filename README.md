@@ -1,17 +1,59 @@
-#  Backend 
+# Thư viện sẽ dùng
+
+## 1. Frontend (FE)
+
+**Core:**
+- **ReactJS (Vite)** - UI Framework
+- **React Router DOM** - Điều hướng
+
+**UI/UX:**
+- **Tailwind CSS** - Styling (Dark mode & Layout)
+- **Lucide React** - Icons
+- **Sadcn ui** - nếu cần
+- 
+**Form:**
+- **React Hook Form** - Form handling
+- **Zod** - Validate dữ liệu
+
+**API:**
+- **Fetch API** - 
+
+**State:**
+- **Context API** - Auth & Theme management
+
+**Notify:**
+- **React Toastify** - Toast notifications
+
+---
+
+## 2. Backend (BE)
+
+**Core:**
+- **Express.js** - Framework (Kiến trúc MVC)
+
+**Database:**
+- **Supabase** - PostgreSQL cloud database
+
+**Query Builder:**
+- **Knex.js** - Migrations & Seeding
+
+**Auth:**
+- **JWT** - Token-based authentication
+- **Bcrypt** - Mã hóa mật khẩu
 
 
+---
 
-Backend xây dựng theo mô hình MVC sử dụng:
+## 3. Quy trình
 
-- **Node.js + Express**
-- **Knex.js** (Query Builder)
-- **Supabase** (PostgreSQL)
-- **JWT Authentication**
-- **Bcrypt**
-- **Git & GitHub** cho teamwork
+**Auth Flow:**
+```
+Login → Nhận JWT → server lưu vào cookie → Gửi kèm cookie mỗi khi gọi API
+```
 
-##  Cấu trúc thư mục dự án
+---
+
+##  Cấu trúc thư mục dự án backend
 
 ```
 backend/
