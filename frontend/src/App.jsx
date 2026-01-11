@@ -1,14 +1,14 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "./components/Layout";
-import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
+import LandingPage from "./pages/LandingPage";
 
 function App() {
   return (
     <Routes>
       {/* Public route - Không có layout */}
-      <Route path="/" element={<LoginPage />} />
+      <Route path="/" element={<LandingPage />} />
 
       {/* Protected routes - Có Header + Sidebar */}
       <Route element={<Layout isAdmin={false} />}>
