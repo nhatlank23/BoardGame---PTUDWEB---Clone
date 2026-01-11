@@ -8,7 +8,7 @@ export function Layout({ isAdmin = false }) {
       <Header />
       <div className="flex">
         <Sidebar isAdmin={isAdmin} />
-        <main className="flex-1 ml-64 mt-16 p-6">
+        <main className="flex-1 ml-6 mt-0 p-4 pl-6">
           <Outlet />
         </main>
       </div>
