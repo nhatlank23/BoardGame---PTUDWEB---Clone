@@ -24,7 +24,7 @@ export function Header() {
       <div className="flex h-full items-center justify-between px-6">
         <Link to="/home" className="flex items-center gap-2">
           <Gamepad2 className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold">GameHub</span>
+          <span className="text-xl font-bold">Board Game</span>
         </Link>
 
         <div className="flex-1 max-w-md mx-8">
