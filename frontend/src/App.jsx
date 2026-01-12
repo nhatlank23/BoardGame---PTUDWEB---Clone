@@ -3,6 +3,7 @@ import { Layout } from "./components/Layout";
 import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
 import LandingPage from "./pages/LandingPage";
+import AuthPage from "./pages/Auth";
 import Users from "./pages/admin/Users";
 import Games from "./pages/admin/Games";
 
@@ -19,6 +20,7 @@ function App() {
         <Route path="/friends" element={<div className="text-xl">Friends Page</div>} />
         <Route path="/messages" element={<div className="text-xl">Messages Page</div>} />
         <Route path="/ranking" element={<div className="text-xl">Ranking Page</div>} />
+        <Route path="/auth" element={<AuthPage />} />
       </Route>
 
       {/* Admin routes - Có Header + Sidebar (admin version) */}
@@ -35,4 +37,3 @@ function App() {
 }
 
 export default App;
-
