@@ -3,6 +3,7 @@ import { Layout } from "./components/Layout";
 import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/Profiles";
 import LandingPage from "./pages/LandingPage";
+import MessagesPage from "./pages/Messages";
 import FriendsPage from "./pages/Friends";
 import AuthPage from "./pages/Auth";
 import Users from "./pages/admin/Users";
