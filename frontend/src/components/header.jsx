@@ -11,9 +11,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useNavigate } from "react-router-dom";
+import { authAPI } from "@/lib/auth";
 
 export function Header() {
   const { theme, setTheme } = useTheme();
+  const navigate = useNavigate();
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -54,8 +57,19 @@ export function Header() {
               </DropdownMenuItem>
               <DropdownMenuItem>Cài đặt</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link to="/">Đăng xuất</Link>
+              <DropdownMenuItem
+                onClick={async (e) => {
+                  // Prevent default navigation if any
+                  try {
+                    await authAPI.logout();
+                  } catch (err) {
+                    console.error('Logout failed:', err);
+                  } finally {
+                    navigate('/');
+                  }
+                }}
+              >
+                Đăng xuất
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
