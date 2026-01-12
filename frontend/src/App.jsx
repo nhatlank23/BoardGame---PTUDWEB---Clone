@@ -3,6 +3,7 @@ import { Layout } from "./components/Layout";
 import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/Profiles";
 import LandingPage from "./pages/LandingPage";
+import FriendsPage from "./pages/Friends";
 import AuthPage from "./pages/Auth";
 import Users from "./pages/admin/Users";
 import Games from "./pages/admin/Games";
@@ -25,7 +26,10 @@ function App() {
 
       {/* Admin routes - Có Header + Sidebar (admin version) */}
       <Route element={<Layout isAdmin={true} />}>
-        <Route path="/admin/dashboard" element={<div className="text-xl">Admin Dashboard</div>} />
+        <Route
+          path="/admin/dashboard"
+          element={<div className="text-xl">Admin Dashboard</div>}
+        />
         <Route path="/admin/users" element={<Users />} />
         <Route path="/admin/games" element={<Games />} />
       </Route>
