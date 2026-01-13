@@ -22,7 +22,7 @@ app.get('/', (req, res) => {
 });
 
 const userRoutes = require('./routes/userRoutes');
-app.use('/api', userRoutes);
+app.use('/api/users', userRoutes);
 
 
 app.use((req, res) => {
