@@ -222,4 +222,33 @@ module.exports = {
       return res.status(500).json({ status: 'error', message: 'Internal Server Error' });
     }
   },
+
+  // GET /api/messages/:receiver_id
+  getMessages: async (req, res) => {
+    try {
+      const userId = req.user?.id || req.userId || '550e8400-e29b-41d4-a716-446655440001';
+      if (!userId) {
+        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+      }
+
+      const receiverId = req.params.receiver_id;
+      if (!receiverId) {
+        return res.status(400).json({ status: 'error', message: 'receiver_id is required' });
+      }
+
+      const messages = await db('messages')
+        .where(function() {
+          this.where({ sender_id: userId, receiver_id: receiverId })
+            .orWhere({ sender_id: receiverId, receiver_id: userId });
+        })
+        .select('id', 'sender_id', 'receiver_id', 'content', 'created_at')
+        .orderBy('created_at', 'asc')
+        .limit(200);
+
+      return res.json({ data: messages });
+    } catch (err) {
+      console.error('getMessages error:', err);
+      return res.status(500).json({ status: 'error', message: 'Internal Server Error' });
+    }
+  },
 };

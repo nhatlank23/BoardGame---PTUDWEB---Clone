@@ -20,5 +20,8 @@ router.patch('/friends/respond', userController.respondToFriendRequest);
 // Delete friend or cancel request endpoint
 router.delete('/friends/:id', userController.deleteFriend);
 
+// Get messages endpoint
+router.get('/messages/:receiver_id', userController.getMessages);
+
 module.exports = router;
 
