@@ -8,5 +8,8 @@ router.get('/users/search', userController.searchUsers);
 // Friends endpoint
 router.get('/friends', userController.getFriends);
 
+// Friend requests endpoint
+router.get('/friends/requests', userController.getFriendRequests);
+
 module.exports = router;
 

@@ -68,4 +68,33 @@ module.exports = {
       return res.status(500).json({ status: 'error', message: 'Internal Server Error' });
     }
   },
+
+  // GET /api/friends/requests
+  getFriendRequests: async (req, res) => {
+    try {
+      const userId = req.user?.id || req.userId || '550e8400-e29b-41d4-a716-446655440003';
+      if (!userId) {
+        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+      }
+
+      const rows = await db('friendships')
+        .where('friendships.addressee_id', userId)
+        .andWhere('friendships.status', 'pending')
+        .join('users', 'users.id', 'friendships.requester_id')
+        .select('users.id', 'users.username', 'users.email', 'users.avatar_url')
+        .limit(50);
+
+      const requests = rows.map((r) => ({
+        id: r.id,
+        name: r.username,
+        email: r.email,
+        avatar: r.avatar_url || null,
+      }));
+
+      return res.json({ data: requests });
+    } catch (err) {
+      console.error('getFriendRequests error:', err);
+      return res.status(500).json({ status: 'error', message: 'Internal Server Error' });
+    }
+  },
 };
