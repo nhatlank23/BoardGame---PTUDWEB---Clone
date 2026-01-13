@@ -97,4 +97,52 @@ module.exports = {
       return res.status(500).json({ status: 'error', message: 'Internal Server Error' });
     }
   },
+
+  // POST /api/friends/request
+  sendFriendRequest: async (req, res) => {
+    try {
+      const userId = req.user?.id || req.userId || '550e8400-e29b-41d4-a716-446655440003';
+      if (!userId) {
+        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+      }
+
+      const { addresseeId } = req.body;
+      if (!addresseeId) {
+        return res.status(400).json({ status: 'error', message: 'addresseeId is required' });
+      }
+
+      if (userId === addresseeId) {
+        return res.status(400).json({ status: 'error', message: 'Cannot send friend request to yourself' });
+      }
+
+      const existing = await db('friendships')
+        .where(function() {
+          this.where({ requester_id: userId, addressee_id: addresseeId })
+            .orWhere({ requester_id: addresseeId, addressee_id: userId });
+        })
+        .first();
+
+      if (existing) {
+        if (existing.status === 'accepted') {
+          return res.status(400).json({ status: 'error', message: 'Already friends' });
+        }
+        if (existing.status === 'pending') {
+          return res.status(400).json({ status: 'error', message: 'Friend request already exists' });
+        }
+      }
+
+      const [newRequest] = await db('friendships')
+        .insert({
+          requester_id: userId,
+          addressee_id: addresseeId,
+          status: 'pending'
+        })
+        .returning('*');
+
+      return res.json({ success: true, data: newRequest });
+    } catch (err) {
+      console.error('sendFriendRequest error:', err);
+      return res.status(500).json({ status: 'error', message: 'Internal Server Error' });
+    }
+  },
 };

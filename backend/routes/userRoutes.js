@@ -11,5 +11,8 @@ router.get('/friends', userController.getFriends);
 // Friend requests endpoint
 router.get('/friends/requests', userController.getFriendRequests);
 
+// Send friend request endpoint
+router.post('/friends/request', userController.sendFriendRequest);
+
 module.exports = router;
 
