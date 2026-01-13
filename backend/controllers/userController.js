@@ -101,7 +101,7 @@ module.exports = {
   // POST /api/friends/request
   sendFriendRequest: async (req, res) => {
     try {
-      const userId = req.user?.id || req.userId || '550e8400-e29b-41d4-a716-446655440003';
+      const userId = req.user?.id || req.userId || '550e8400-e29b-41d4-a716-446655440001';
       if (!userId) {
         return res.status(401).json({ status: 'error', message: 'Unauthorized' });
       }
@@ -173,6 +173,52 @@ module.exports = {
       return res.json({ success: true });
     } catch (err) {
       console.error('deleteFriend error:', err);
+      return res.status(500).json({ status: 'error', message: 'Internal Server Error' });
+    }
+  },
+
+  // PATCH /api/friends/respond
+  respondToFriendRequest: async (req, res) => {
+    try {
+      const userId = req.user?.id || req.userId || '550e8400-e29b-41d4-a716-446655440001';
+      if (!userId) {
+        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+      }
+
+      const { requesterId, action } = req.body;
+      if (!requesterId || !action) {
+        return res.status(400).json({ status: 'error', message: 'requesterId and action are required' });
+      }
+
+      if (!['accept', 'decline'].includes(action)) {
+        return res.status(400).json({ status: 'error', message: 'action must be accept or decline' });
+      }
+
+      const friendship = await db('friendships')
+        .where({
+          requester_id: requesterId,
+          addressee_id: userId,
+          status: 'pending'
+        })
+        .first();
+
+      if (!friendship) {
+        return res.status(404).json({ status: 'error', message: 'Friend request not found' });
+      }
+
+      if (action === 'accept') {
+        await db('friendships')
+          .where({ id: friendship.id })
+          .update({ status: 'accepted' });
+      } else {
+        await db('friendships')
+          .where({ id: friendship.id })
+          .update({ status: 'declined' });
+      }
+
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('respondToFriendRequest error:', err);
       return res.status(500).json({ status: 'error', message: 'Internal Server Error' });
     }
   },

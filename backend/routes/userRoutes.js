@@ -14,6 +14,9 @@ router.get('/friends/requests', userController.getFriendRequests);
 // Send friend request endpoint
 router.post('/friends/request', userController.sendFriendRequest);
 
+// Respond to friend request endpoint
+router.patch('/friends/respond', userController.respondToFriendRequest);
+
 // Delete friend or cancel request endpoint
 router.delete('/friends/:id', userController.deleteFriend);
 
