@@ -145,4 +145,35 @@ module.exports = {
       return res.status(500).json({ status: 'error', message: 'Internal Server Error' });
     }
   },
+
+  // DELETE /api/friends/:id
+  deleteFriend: async (req, res) => {
+    try {
+      const userId = req.user?.id || req.userId || '550e8400-e29b-41d4-a716-446655440001';
+      if (!userId) {
+        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+      }
+
+      const friendId = req.params.id;
+      if (!friendId) {
+        return res.status(400).json({ status: 'error', message: 'Friend id is required' });
+      }
+
+      const deleted = await db('friendships')
+        .where(function() {
+          this.where({ requester_id: userId, addressee_id: friendId })
+            .orWhere({ requester_id: friendId, addressee_id: userId });
+        })
+        .del();
+
+      if (deleted === 0) {
+        return res.status(404).json({ status: 'error', message: 'Friendship not found' });
+      }
+
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('deleteFriend error:', err);
+      return res.status(500).json({ status: 'error', message: 'Internal Server Error' });
+    }
+  },
 };
