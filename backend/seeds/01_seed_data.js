@@ -73,13 +73,20 @@ exports.seed = async function (knex) {
     { user_id: userIds[1], game_id: gameIds[4], high_score: 5000 },
   ]);
 
-  // 6. SEED MESSAGES (5 tin nhắn)
+  // 6. SEED MESSAGES (thêm tin nhắn để test chat)
   await knex("messages").insert([
-    { sender_id: userIds[1], receiver_id: userIds[2], content: "Chào ông, làm ván Caro không?" },
-    { sender_id: userIds[2], receiver_id: userIds[1], content: "Ok luôn, đợi tí tui tạo phòng." },
-    { sender_id: userIds[1], receiver_id: userIds[0], content: "Admin ơi, game Snake bị lag." },
-    { sender_id: userIds[3], receiver_id: userIds[4], content: "Điểm cao thế!" },
-    { sender_id: userIds[4], receiver_id: userIds[3], content: "Hên thôi ông ơi." },
+    // conversation between userIds[1] and userIds[2]
+    { sender_id: userIds[1], receiver_id: userIds[2], content: "Chào ông, làm ván Caro không?", created_at: new Date('2026-01-10T09:00:00Z') },
+    { sender_id: userIds[2], receiver_id: userIds[1], content: "Ok luôn, đợi tí tui tạo phòng.", created_at: new Date('2026-01-10T09:01:00Z') },
+    { sender_id: userIds[1], receiver_id: userIds[2], content: "Sẵn sàng, mấy giờ chơi?", created_at: new Date('2026-01-10T09:02:00Z') },
+    { sender_id: userIds[2], receiver_id: userIds[1], content: "10 phút nữa nhé.", created_at: new Date('2026-01-10T09:03:00Z') },
+    { sender_id: userIds[1], receiver_id: userIds[2], content: "Ok, đang chuẩn bị.", created_at: new Date('2026-01-10T09:04:00Z') },
+    { sender_id: userIds[2], receiver_id: userIds[1], content: "Tui vừa tạo phòng: ROOM123", created_at: new Date('2026-01-10T09:05:00Z') },
+
+    // other messages
+    { sender_id: userIds[1], receiver_id: userIds[0], content: "Admin ơi, game Snake bị lag.", created_at: new Date('2026-01-09T08:00:00Z') },
+    { sender_id: userIds[3], receiver_id: userIds[4], content: "Điểm cao thế!", created_at: new Date('2026-01-08T12:00:00Z') },
+    { sender_id: userIds[4], receiver_id: userIds[3], content: "Hên thôi ông ơi.", created_at: new Date('2026-01-08T12:01:00Z') },
   ]);
 
   // 7. SEED ACHIEVEMENTS (5 danh hiệu)

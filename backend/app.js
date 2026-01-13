@@ -21,8 +21,8 @@ app.get('/', (req, res) => {
   });
 });
 
-const routes = require('./routes');
-app.use('/api', routes);
+const userRoutes = require('./routes/userRoutes');
+app.use('/api/users', userRoutes);
 
 
 app.use((req, res) => {
