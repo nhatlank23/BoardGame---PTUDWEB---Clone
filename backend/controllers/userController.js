@@ -251,4 +251,31 @@ module.exports = {
       return res.status(500).json({ status: 'error', message: 'Internal Server Error' });
     }
   },
+
+  // POST /api/messages
+  sendMessage: async (req, res) => {
+    try {
+      const userId = req.user?.id || req.userId || '550e8400-e29b-41d4-a716-446655440001';
+      if (!userId) {
+        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+      }
+
+      const { receiver_id, content } = req.body;
+      if (!receiver_id) {
+        return res.status(400).json({ status: 'error', message: 'receiver_id is required' });
+      }
+      if (!content || String(content).trim().length === 0) {
+        return res.status(400).json({ status: 'error', message: 'content is required' });
+      }
+
+      const [message] = await db('messages')
+        .insert({ sender_id: userId, receiver_id, content })
+        .returning(['id', 'sender_id', 'receiver_id', 'content', 'created_at']);
+
+      return res.json({ success: true, data: message });
+    } catch (err) {
+      console.error('sendMessage error:', err);
+      return res.status(500).json({ status: 'error', message: 'Internal Server Error' });
+    }
+  },
 };

@@ -22,6 +22,8 @@ router.delete('/friends/:id', userController.deleteFriend);
 
 // Get messages endpoint
 router.get('/messages/:receiver_id', userController.getMessages);
+// Send message endpoint
+router.post('/messages', userController.sendMessage);
 
 module.exports = router;
 
