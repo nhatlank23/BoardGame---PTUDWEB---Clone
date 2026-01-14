@@ -1,15 +1,24 @@
 import { Link } from "react-router-dom";
-import { Moon, Sun, Search, Gamepad2 } from "lucide-react";
+import { Moon, Sun, Search, Gamepad2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTheme } from "./theme-provider";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { authAPI } from "@/lib/auth";
+import { useAuth } from "@/context/AuthContext";
 
 export function Header() {
   const { theme, setTheme } = useTheme();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const toggleTheme = () => {
@@ -36,37 +45,60 @@ export function Header() {
             {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger>
-              <button type="button" className="relative h-10 w-10 rounded-full inline-flex items-center justify-center bg-transparent">
-                <Avatar>
-                  <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                  <AvatarFallback>NV</AvatarFallback>
-                </Avatar>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link to="/profile">Profile</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem>Cài đặt</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={async (e) => {
-                  // Prevent default navigation if any
-                  try {
-                    await authAPI.logout();
-                  } catch (err) {
-                    console.error('Logout failed:', err);
-                  } finally {
-                    navigate('/');
-                  }
-                }}
-              >
-                Đăng xuất
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {isAuthenticated ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger>
+                <button type="button" className="relative h-10 w-10 rounded-full inline-flex items-center justify-center bg-transparent">
+                  <Avatar>
+                    <AvatarImage src={user?.avatar_url || "/placeholder.svg?height=40&width=40"} />
+                    <AvatarFallback>{user?.username?.substring(0, 2).toUpperCase() || "U"}</AvatarFallback>
+                  </Avatar>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user?.username}</p>
+                    <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                    {user?.role === "admin" && (
+                      <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                        <Shield className="h-3 w-3" />
+                        Admin
+                      </p>
+                    )}
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile">Profile</Link>
+                </DropdownMenuItem>
+                {user?.role === "admin" && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/dashboard">Admin Dashboard</Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={async (e) => {
+                    try {
+                      await authAPI.logout();
+                    } catch (err) {
+                      console.error("Logout failed:", err);
+                    } finally {
+                      navigate("/");
+                    }
+                  }}
+                >
+                  Đăng xuất
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button onClick={() => navigate("/auth")}>Đăng nhập</Button>
+          )}
         </div>
       </div>
     </header>
