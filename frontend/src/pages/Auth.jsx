@@ -31,7 +31,13 @@ export default function AuthPage() {
     try {
       const res = await authAPI.login(emailOrUsername, password);
       if (res && res.status === "success") {
-        navigate("/home");
+        // Kiểm tra role để navigate
+        const user = res.data?.user;
+        if (user?.role === "admin") {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/home");
+        }
       }
     } catch (err) {
       setError(err.message || "Đăng nhập thất bại");

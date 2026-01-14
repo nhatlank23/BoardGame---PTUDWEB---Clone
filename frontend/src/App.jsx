@@ -16,43 +16,39 @@ import { useAuth } from "./context/AuthContext";
 
 const AdminRoute = ({ children }) => {
   const { user, isLoading } = useAuth();
-  if (isLoading) return <div>Đang kiểm tra quyền Admin...</div>;
-  return user?.role === "admin" ? children : <Navigate to="/home" replace />;
+  
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <p>Đang kiểm tra quyền Admin...</p>
+      </div>
+    );
+  }
+  
+  return user?.role === "admin" ? children : <Navigate to="/home" replace />; 
 };
 
 function App() {
   return (
     <AuthProvider>
       <Routes>
-        {/* --- PUBLIC ROUTES --- */}
+        {/* --- PUBLIC ROUTES (Ai cũng vào được) --- */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/home" element={<HomePage />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/friends" element={<FriendsPage />} />
-        <Route path="/messages" element={<MessagesPage />} />
         <Route path="/ranking" element={<Ranking />} />
-        <Route path="/admin/dashboard" element={<Dashboard />} />
-        <Route path="/admin/users" element={<Users />} />
-        <Route path="/admin/games" element={<Games />} />
+
         {/* --- PROTECTED ROUTES (Phải đăng nhập mới vào được) --- */}
         <Route element={<ProtectedRoute />}>
-          {/* Nhóm Route dành cho User thường */}
-          {/* <Route element={<Layout isAdmin={false} />}>
-            <Route path="/home" element={<HomePage />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/friends" element={<FriendsPage />} />
-            <Route path="/messages" element={<MessagesPage />} />
-            <Route path="/ranking" element={<div className="text-xl">Ranking Page</div>} />
-          </Route> */}
-
-          {/* Nhóm Route dành riêng cho ADMIN */}
-          {/* <Route element={<AdminRoute><Layout isAdmin={true} /></AdminRoute>}>
-            <Route path="/admin/dashboard" element={<div className="text-xl">Admin Dashboard</div>} />
-            <Route path="/admin/users" element={<Users />} />
-            <Route path="/admin/games" element={<Games />} />
-            <Route path="/admin/games/:gameId/config" element={<GameConfig />} />
-          </Route> */}
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/friends" element={<FriendsPage />} />
+          <Route path="/messages" element={<MessagesPage />} />
+          
+          {/* --- ADMIN ROUTES (Chỉ admin mới vào được) --- */}
+          <Route path="/admin/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
+          <Route path="/admin/users" element={<AdminRoute><Users /></AdminRoute>} />
+          <Route path="/admin/games" element={<AdminRoute><Games /></AdminRoute>} />
+          <Route path="/admin/games/:gameId/config" element={<AdminRoute><GameConfig /></AdminRoute>} />
         </Route>
 
         {/* Fallback - Redirect về trang chủ nếu gõ sai URL */}
