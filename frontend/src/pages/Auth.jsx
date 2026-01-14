@@ -6,10 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Gamepad2 } from "lucide-react";
-import { authAPI } from "@/lib/auth";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AuthPage() {
   const navigate = useNavigate();
+  const { login: contextLogin } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
 
@@ -29,15 +30,17 @@ export default function AuthPage() {
     setError(null);
     setIsLoading(true);
     try {
-      const res = await authAPI.login(emailOrUsername, password);
-      if (res && res.status === "success") {
+      const result = await contextLogin(emailOrUsername, password);
+      if (result.success) {
         // Kiểm tra role để navigate
-        const user = res.data?.user;
+        const user = result.user;
         if (user?.role === "admin") {
           navigate("/admin/dashboard");
         } else {
           navigate("/home");
         }
+      } else {
+        setError(result.message || "Đăng nhập thất bại");
       }
     } catch (err) {
       setError(err.message || "Đăng nhập thất bại");

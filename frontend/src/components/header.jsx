@@ -13,12 +13,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
-import { authAPI } from "@/lib/auth";
 import { useAuth } from "@/context/AuthContext";
 
 export function Header() {
   const { theme, setTheme } = useTheme();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
   const toggleTheme = () => {
@@ -68,23 +67,20 @@ export function Header() {
                     )}
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/profile">Profile</Link>
-                </DropdownMenuItem>
-                {user?.role === "admin" && (
+                {/* Show Profile only for non-admin users */}
+                {user?.role !== "admin" && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link to="/admin/dashboard">Admin Dashboard</Link>
+                      <Link to="/profile">Profile</Link>
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                   </>
                 )}
-                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={async (e) => {
                     try {
-                      await authAPI.logout();
+                      await logout();
                     } catch (err) {
                       console.error("Logout failed:", err);
                     } finally {

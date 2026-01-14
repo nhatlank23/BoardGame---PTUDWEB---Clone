@@ -1,9 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Navigate, Outlet } from "react-router-dom";
+import { authAPI, authService } from "@/lib/auth";
 
 const AuthContext = createContext();
-
-const API_URL = "http://localhost:3000/api";
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -11,7 +10,7 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchWithAuth = async (endpoint, options = {}) => {
-    const token = localStorage.getItem("token");
+    const token = authService.getToken();
     const headers = {
       "Content-Type": "application/json",
       ...options.headers,
@@ -21,6 +20,7 @@ export const AuthProvider = ({ children }) => {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
+    const API_URL = "http://localhost:3000/api";
     const response = await fetch(`${API_URL}${endpoint}`, {
       ...options,
       headers,
@@ -31,17 +31,16 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const checkUserStatus = () => {
-      const token = localStorage.getItem("token");
-      const userStr = localStorage.getItem("user");
+      const token = authService.getToken();
+      const userObj = authService.getUser();
 
-      if (!token || !userStr) {
+      if (!token || !userObj) {
         setIsLoading(false);
         return;
       }
 
       try {
-        const userData = JSON.parse(userStr);
-        setUser(userData);
+        setUser(userObj);
         setIsAuthenticated(true);
       } catch (error) {
         console.error("Lỗi parse user data:", error);
@@ -54,38 +53,34 @@ export const AuthProvider = ({ children }) => {
     checkUserStatus();
   }, []);
 
-  const login = async (username, password) => {
+  const login = async (emailOrUsername, password) => {
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
+      const response = await authAPI.login(emailOrUsername, password);
 
-      const data = await response.json();
-
-      if (response.ok) {
-        const userData = data.data?.user || data.user;
-        const token = data.data?.token || data.token;
-
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(userData));
+      if (response && response.status === "success") {
+        // authAPI đã lưu vào localStorage, giờ cập nhật state
+        const userData = response.data?.user;
         setUser(userData);
         setIsAuthenticated(true);
         return { success: true, user: userData };
       } else {
-        return { success: false, message: data.message || "Đăng nhập thất bại" };
+        return { success: false, message: response?.message || "Đăng nhập thất bại" };
       }
     } catch (error) {
-      return { success: false, message: "Lỗi kết nối server" };
+      return { success: false, message: error.message || "Lỗi kết nối server" };
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setUser(null);
-    setIsAuthenticated(false);
+  const logout = async () => {
+    try {
+      await authAPI.logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      // Xóa state ngay lập tức
+      setUser(null);
+      setIsAuthenticated(false);
+    }
   };
 
   return <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, logout, fetchWithAuth }}>{children}</AuthContext.Provider>;

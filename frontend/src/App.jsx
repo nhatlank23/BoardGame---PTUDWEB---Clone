@@ -16,16 +16,16 @@ import { useAuth } from "./context/AuthContext";
 
 const AdminRoute = ({ children }) => {
   const { user, isLoading } = useAuth();
-  
+
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
         <p>Đang kiểm tra quyền Admin...</p>
       </div>
     );
   }
-  
-  return user?.role === "admin" ? children : <Navigate to="/home" replace />; 
+
+  return user?.role === "admin" ? children : <Navigate to="/home" replace />;
 };
 
 function App() {
@@ -43,12 +43,40 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/friends" element={<FriendsPage />} />
           <Route path="/messages" element={<MessagesPage />} />
-          
+
           {/* --- ADMIN ROUTES (Chỉ admin mới vào được) --- */}
-          <Route path="/admin/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
-          <Route path="/admin/users" element={<AdminRoute><Users /></AdminRoute>} />
-          <Route path="/admin/games" element={<AdminRoute><Games /></AdminRoute>} />
-          <Route path="/admin/games/:gameId/config" element={<AdminRoute><GameConfig /></AdminRoute>} />
+          <Route
+            path="/admin/dashboard"
+            element={
+              <AdminRoute>
+                <Dashboard />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <AdminRoute>
+                <Users />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/games"
+            element={
+              <AdminRoute>
+                <Games />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/games/:gameId/config"
+            element={
+              <AdminRoute>
+                <GameConfig />
+              </AdminRoute>
+            }
+          />
         </Route>
 
         {/* Fallback - Redirect về trang chủ nếu gõ sai URL */}
