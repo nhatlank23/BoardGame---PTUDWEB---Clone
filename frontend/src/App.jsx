@@ -10,6 +10,7 @@ import AuthPage from "./pages/Auth";
 import Users from "./pages/admin/Users";
 import Games from "./pages/admin/Games";
 import Ranking from "./pages/Ranking";
+import Dashboard from "./pages/admin/Dashboard";
 import { AuthProvider, ProtectedRoute } from "./context/AuthContext";
 import { useAuth } from "./context/AuthContext";
 
@@ -31,7 +32,7 @@ function App() {
         <Route path="/friends" element={<FriendsPage />} />
         <Route path="/messages" element={<MessagesPage />} />
         <Route path="/ranking" element={<Ranking />} />
-        <Route path="/admin/dashboard" element={<div className="text-xl">Admin Dashboard</div>} />
+        <Route path="/admin/dashboard" element={<Dashboard />} />
         <Route path="/admin/users" element={<Users />} />
         <Route path="/admin/games" element={<Games />} />
         {/* --- PROTECTED ROUTES (Phải đăng nhập mới vào được) --- */}
