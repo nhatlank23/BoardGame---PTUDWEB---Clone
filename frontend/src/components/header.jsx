@@ -3,13 +3,7 @@ import { Moon, Sun, Search, Gamepad2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTheme } from "./theme-provider";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function Header() {
@@ -40,13 +34,13 @@ export function Header() {
           </Button>
 
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+            <DropdownMenuTrigger>
+              <button type="button" className="relative h-10 w-10 rounded-full inline-flex items-center justify-center bg-transparent">
                 <Avatar>
                   <AvatarImage src="/placeholder.svg?height=40&width=40" />
                   <AvatarFallback>NV</AvatarFallback>
                 </Avatar>
-              </Button>
+              </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
@@ -62,6 +56,5 @@ export function Header() {
         </div>
       </div>
     </header>
-  )
+  );
 }
-
