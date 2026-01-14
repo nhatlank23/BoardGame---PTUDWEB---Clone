@@ -24,6 +24,9 @@ app.get('/', (req, res) => {
 const userRoutes = require('./routes/userRoutes');
 app.use('/api/users', userRoutes);
 
+const gameRoutes = require('./routes/gameRoutes');
+app.use('/api', gameRoutes);
+
 
 app.use((req, res) => {
   res.status(404).json({
