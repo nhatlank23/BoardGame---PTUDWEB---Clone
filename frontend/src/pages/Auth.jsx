@@ -10,7 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function AuthPage() {
   const navigate = useNavigate();
-  const { login: contextLogin } = useAuth();
+  const { login: contextLogin, register: contextRegister } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
 
@@ -55,11 +55,16 @@ export default function AuthPage() {
     setIsLoading(true);
     try {
       if (regPassword !== confirmPassword) {
-        throw new Error("Mật khẩu và xác nhận mật khẩu không khớp");
+        setError("Mật khẩu và xác nhận mật khẩu không khớp");
+        setIsLoading(false);
+        return;
       }
-      const res = await authAPI.register(username, regEmail, regPassword, confirmPassword);
-      if (res && res.status === "success") {
+      const result = await contextRegister(username, regEmail, regPassword, confirmPassword);
+      if (result.success) {
+        // Người dùng mới thường là player, navigate về home
         navigate("/home");
+      } else {
+        setError(result.message || "Đăng ký thất bại");
       }
     } catch (err) {
       setError(err.message || "Đăng ký thất bại");

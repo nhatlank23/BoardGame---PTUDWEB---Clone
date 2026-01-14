@@ -73,6 +73,24 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const register = async (username, email, password, confirmPassword) => {
+    try {
+      const response = await authService.register(username, email, password, confirmPassword);
+      
+      if (response && response.status === "success") {
+        // authService đã lưu vào localStorage, giờ cập nhật state
+        const userData = response.data?.user;
+        setUser(userData);
+        setIsAuthenticated(true);
+        return { success: true, user: userData };
+      } else {
+        return { success: false, message: response?.message || "Đăng ký thất bại" };
+      }
+    } catch (error) {
+      return { success: false, message: error.message || "Lỗi kết nối server" };
+    }
+  };
+
   const logout = async () => {
     try {
       await authService.logout();
@@ -83,7 +101,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  return <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, logout, fetchWithAuth }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, register, logout, fetchWithAuth }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

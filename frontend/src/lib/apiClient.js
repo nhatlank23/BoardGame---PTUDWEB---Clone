@@ -33,6 +33,16 @@ export const apiClient = {
     return this.handleResponse(response, options);
   },
 
+  // PATCH request
+  async patch(endpoint, data, options = {}) {
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      method: "PATCH",
+      headers: storageService.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return this.handleResponse(response, options);
+  },
+
   // DELETE request
   async delete(endpoint, options = {}) {
     const response = await fetch(`${API_URL}${endpoint}`, {
@@ -51,7 +61,7 @@ export const apiClient = {
       const skipAutoLogout = options.skipAutoLogout === true;
       if (response.status === 401 && !skipAutoLogout) {
         storageService.clearAuth();
-        window.location.href = "/";
+        window.location.href = "/auth";
       }
       throw new Error(data.message || "API request failed");
     }

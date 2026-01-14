@@ -1,59 +1,169 @@
+import { useState, useEffect } from "react";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, UserPlus, Check, X } from "lucide-react";
+import { friendService } from "@/services/friendService";
+import { useToast } from "@/hooks/use-toast";
 
 export default function FriendsPage() {
-  const friends = [
-    {
-      name: "ProGamer123",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "online",
-      game: "Đang chơi Caro",
-    },
-    {
-      name: "MasterPlayer",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "online",
-      game: "Đang chơi Snake",
-    },
-    {
-      name: "GameLegend",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "offline",
-      game: "",
-    },
-    {
-      name: "SkillMaster",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "offline",
-      game: "",
-    },
-  ];
+  const { toast } = useToast();
+  const [friends, setFriends] = useState([]);
+  const [friendRequests, setFriendRequests] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
-  const friendRequests = [
-    {
-      name: "NewPlayer456",
-      avatar: "/placeholder.svg?height=40&width=40",
-      mutualFriends: 3,
-    },
-    {
-      name: "CoolGamer",
-      avatar: "/placeholder.svg?height=40&width=40",
-      mutualFriends: 1,
-    },
-  ];
+  // Load friends on mount
+  useEffect(() => {
+    loadFriends();
+    loadFriendRequests();
+  }, []);
+
+  const loadFriends = async () => {
+    try {
+      setIsLoading(true);
+      const response = await friendService.getFriends();
+      if (response.data) {
+        setFriends(response.data);
+      }
+    } catch (error) {
+      console.error("Error loading friends:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách bạn bè",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadFriendRequests = async () => {
+    try {
+      const response = await friendService.getFriendRequests();
+      if (response.data) {
+        setFriendRequests(response.data);
+      }
+    } catch (error) {
+      console.error("Error loading friend requests:", error);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim() || searchQuery.trim().length < 2) {
+      toast({
+        title: "Thông báo",
+        description: "Vui lòng nhập ít nhất 2 ký tự để tìm kiếm",
+        variant: "default",
+      });
+      return;
+    }
+
+    try {
+      setIsSearching(true);
+      const response = await friendService.searchUsers(searchQuery);
+      if (response.data) {
+        setSearchResults(response.data);
+      }
+    } catch (error) {
+      console.error("Error searching users:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tìm kiếm người dùng",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSendFriendRequest = async (userId) => {
+    console.log("Sending friend request to user ID:", userId);
+    try {
+      await friendService.sendFriendRequest(userId);
+      toast({
+        title: "Thành công",
+        description: "Đã gửi lời mời kết bạn",
+      });
+      // Remove from search results
+      setSearchResults(searchResults.filter((user) => user.id !== userId));
+    } catch (error) {
+      console.error("Error sending friend request:", error);
+      toast({
+        title: "Lỗi",
+        description: error.message || "Không thể gửi lời mời kết bạn",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAcceptRequest = async (requesterId) => {
+    try {
+      await friendService.respondToRequest(requesterId, "accept");
+      toast({
+        title: "Thành công",
+        description: "Đã chấp nhận lời mời kết bạn",
+      });
+      // Reload both lists
+      loadFriends();
+      loadFriendRequests();
+    } catch (error) {
+      console.error("Error accepting request:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể chấp nhận lời mời",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeclineRequest = async (requesterId) => {
+    try {
+      await friendService.respondToRequest(requesterId, "decline");
+      toast({
+        title: "Thành công",
+        description: "Đã từ chối lời mời kết bạn",
+      });
+      loadFriendRequests();
+    } catch (error) {
+      console.error("Error declining request:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể từ chối lời mời",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUnfriend = async (friendId) => {
+    try {
+      await friendService.deleteFriend(friendId);
+      toast({
+        title: "Thành công",
+        description: "Đã hủy kết bạn",
+      });
+      loadFriends();
+    } catch (error) {
+      console.error("Error unfriending:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể hủy kết bạn",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Check if user is already a friend
+  const isFriend = (userId) => {
+    return friends.some((friend) => friend.id === userId);
+  };
 
   return (
     <div className="min-h-screen">
@@ -64,9 +174,7 @@ export default function FriendsPage() {
         <div className="max-w-5xl mx-auto">
           <div className="mb-8">
             <h1 className="text-4xl font-bold mb-2">Bạn bè</h1>
-            <p className="text-muted-foreground">
-              Quản lý danh sách bạn bè của bạn
-            </p>
+            <p className="text-muted-foreground">Quản lý danh sách bạn bè của bạn</p>
           </div>
 
           <Tabs defaultValue="all" className="space-y-6">
@@ -94,54 +202,40 @@ export default function FriendsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Danh sách bạn bè</CardTitle>
-                  <CardDescription>
-                    {friends.filter((f) => f.status === "online").length} người
-                    đang online
-                  </CardDescription>
+                  <CardDescription>{friends.length} người bạn</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {friends.map((friend) => (
-                      <div
-                        key={friend.name}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="relative">
+                  {isLoading ? (
+                    <p className="text-center text-muted-foreground py-8">Đang tải...</p>
+                  ) : friends.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">Bạn chưa có bạn bè nào</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {friends.map((friend) => (
+                        <div key={friend.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors">
+                          <div className="flex items-center gap-3">
                             <Avatar>
-                              <AvatarImage
-                                src={friend.avatar || "/placeholder.svg"}
-                              />
-                              <AvatarFallback>{friend.name[0]}</AvatarFallback>
+                              <AvatarImage src={friend.avatar || "/placeholder.svg"} />
+                              <AvatarFallback>{friend.name[0]?.toUpperCase()}</AvatarFallback>
                             </Avatar>
-                            {friend.status === "online" && (
-                              <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-background" />
-                            )}
+                            <div>
+                              <div className="font-semibold">{friend.name}</div>
+                              <div className="text-sm text-muted-foreground">{friend.email}</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="font-semibold">{friend.name}</div>
-                            {friend.game ? (
-                              <div className="text-sm text-muted-foreground">
-                                {friend.game}
-                              </div>
-                            ) : (
-                              <div className="text-sm text-muted-foreground">
-                                Offline
-                              </div>
-                            )}
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm">
+                              Nhắn tin
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={() => handleUnfriend(friend.id)}>
+                              <X className="mr-2 h-4 w-4" />
+                              Hủy kết bạn
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
-                            Nhắn tin
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            Mời chơi
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -151,44 +245,39 @@ export default function FriendsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Lời mời kết bạn</CardTitle>
-                  <CardDescription>
-                    Chấp nhận hoặc từ chối lời mời
-                  </CardDescription>
+                  <CardDescription>Chấp nhận hoặc từ chối lời mời</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {friendRequests.map((request) => (
-                      <div
-                        key={request.name}
-                        className="flex items-center justify-between p-4 border rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarImage
-                              src={request.avatar || "/placeholder.svg"}
-                            />
-                            <AvatarFallback>{request.name[0]}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-semibold">{request.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {request.mutualFriends} bạn chung
+                  {friendRequests.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">Không có lời mời kết bạn nào</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {friendRequests.map((request) => (
+                        <div key={request.id} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Avatar>
+                              <AvatarImage src={request.avatar || "/placeholder.svg"} />
+                              <AvatarFallback>{request.name[0]?.toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-semibold">{request.name}</div>
+                              <div className="text-sm text-muted-foreground">{request.email}</div>
                             </div>
                           </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => handleAcceptRequest(request.id)}>
+                              <Check className="mr-2 h-4 w-4" />
+                              Chấp nhận
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => handleDeclineRequest(request.id)}>
+                              <X className="mr-2 h-4 w-4" />
+                              Từ chối
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button size="sm">
-                            <Check className="mr-2 h-4 w-4" />
-                            Chấp nhận
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <X className="mr-2 h-4 w-4" />
-                            Từ chối
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -198,9 +287,7 @@ export default function FriendsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Tìm kiếm bạn bè</CardTitle>
-                  <CardDescription>
-                    Nhập tên người dùng để tìm kiếm
-                  </CardDescription>
+                  <CardDescription>Nhập tên người dùng để tìm kiếm</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex gap-2 mb-6">
@@ -209,13 +296,46 @@ export default function FriendsPage() {
                       <Input
                         placeholder="Tìm kiếm theo tên..."
                         className="pl-9"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                       />
                     </div>
-                    <Button>Tìm kiếm</Button>
+                    <Button onClick={handleSearch} disabled={isSearching}>
+                      {isSearching ? "Đang tìm..." : "Tìm kiếm"}
+                    </Button>
                   </div>
-                  <p className="text-center text-muted-foreground py-8">
-                    Nhập tên người dùng để bắt đầu tìm kiếm
-                  </p>
+
+                  {searchResults.length === 0 && !isSearching ? (
+                    <p className="text-center text-muted-foreground py-8">Nhập tên người dùng để bắt đầu tìm kiếm</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {searchResults.map((user) => (
+                        <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Avatar>
+                              <AvatarImage src={user.avatar || "/placeholder.svg"} />
+                              <AvatarFallback>{user.name[0]?.toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-semibold">{user.name}</div>
+                              <div className="text-sm text-muted-foreground">{user.email}</div>
+                            </div>
+                          </div>
+                          {isFriend(user.id) ? (
+                            <Badge variant="secondary" className="px-3 py-1">
+                              Bạn bè
+                            </Badge>
+                          ) : (
+                            <Button size="sm" onClick={() => handleSendFriendRequest(user.id)}>
+                              <UserPlus className="mr-2 h-4 w-4" />
+                              Thêm bạn
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
