@@ -1,13 +1,7 @@
 import { Link } from "react-router-dom";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Play, Clock } from "lucide-react";
@@ -79,9 +73,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <h1 className="text-4xl font-bold mb-2">Danh sách Game</h1>
-            <p className="text-muted-foreground">
-              Chọn game và bắt đầu chơi ngay
-            </p>
+            <p className="text-muted-foreground">Chọn game và bắt đầu chơi ngay</p>
           </div>
 
           {/* Recent Games */}
@@ -95,21 +87,14 @@ export default function HomePage() {
             <CardContent>
               <div className="grid md:grid-cols-3 gap-4">
                 {recentGames.map((game) => (
-                  <div
-                    key={game.name}
-                    className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent cursor-pointer transition-colors"
-                  >
+                  <div key={game.name} className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent cursor-pointer transition-colors">
                     <div className="h-12 w-12 rounded bg-primary/10 flex items-center justify-center">
                       <Play className="h-6 w-6 text-primary" />
                     </div>
                     <div className="flex-1">
                       <div className="font-semibold">{game.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {game.time}
-                      </div>
-                      <div className="text-sm font-medium text-primary">
-                        {game.score}
-                      </div>
+                      <div className="text-sm text-muted-foreground">{game.time}</div>
+                      <div className="text-sm font-medium text-primary">{game.score}</div>
                     </div>
                   </div>
                 ))}
@@ -120,19 +105,14 @@ export default function HomePage() {
           {/* All Games */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {games.map((game) => (
-              <Card
-                key={game.id}
-                className="overflow-hidden group hover:shadow-xl transition-all"
-              >
+              <Card key={game.id} className="overflow-hidden group hover:shadow-xl transition-all">
                 <div className="aspect-video relative overflow-hidden">
                   <img
                     src={game.image || "/placeholder.svg"}
                     alt={game.name}
                     className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300"
                   />
-                  <Badge className="absolute top-3 right-3">
-                    {game.category}
-                  </Badge>
+                  <Badge className="absolute top-3 right-3">{game.category}</Badge>
                 </div>
                 <CardHeader>
                   <CardTitle>{game.name}</CardTitle>
@@ -140,11 +120,9 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      {game.players}
-                    </span>
+                    <span className="text-sm text-muted-foreground">{game.players}</span>
                     <Button asChild>
-                      <Link to={`/game/${game.id}/settings`}>
+                      <Link to={`/game/${game.id}/play`}>
                         <Play className="mr-2 h-4 w-4" />
                         Chơi ngay
                       </Link>

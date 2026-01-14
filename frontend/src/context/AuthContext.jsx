@@ -1,8 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { authAPI, authService } from "@/lib/auth";
+import { authService } from "@/services/authService";
+import { storageService } from "@/lib/storage";
 
 const AuthContext = createContext();
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -10,7 +13,7 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchWithAuth = async (endpoint, options = {}) => {
-    const token = authService.getToken();
+    const token = storageService.getToken();
     const headers = {
       "Content-Type": "application/json",
       ...options.headers,
@@ -20,7 +23,6 @@ export const AuthProvider = ({ children }) => {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    const API_URL = "http://localhost:3000/api";
     const response = await fetch(`${API_URL}${endpoint}`, {
       ...options,
       headers,
@@ -31,8 +33,8 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const checkUserStatus = () => {
-      const token = authService.getToken();
-      const userObj = authService.getUser();
+      const token = storageService.getToken();
+      const userObj = storageService.getUser();
 
       if (!token || !userObj) {
         setIsLoading(false);
@@ -55,10 +57,10 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (emailOrUsername, password) => {
     try {
-      const response = await authAPI.login(emailOrUsername, password);
-
+      const response = await authService.login(emailOrUsername, password);
+      
       if (response && response.status === "success") {
-        // authAPI đã lưu vào localStorage, giờ cập nhật state
+        // authService đã lưu vào localStorage, giờ cập nhật state
         const userData = response.data?.user;
         setUser(userData);
         setIsAuthenticated(true);
@@ -73,9 +75,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await authAPI.logout();
-    } catch (error) {
-      console.error("Logout error:", error);
+      await authService.logout();
     } finally {
       // Xóa state ngay lập tức
       setUser(null);

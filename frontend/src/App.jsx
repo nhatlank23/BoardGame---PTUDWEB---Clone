@@ -13,20 +13,21 @@ import Ranking from "./pages/Ranking";
 import Dashboard from "./pages/admin/Dashboard";
 import { AuthProvider, ProtectedRoute } from "./context/AuthContext";
 import { useAuth } from "./context/AuthContext";
+import GamePlayPage from "./pages/GamePlay";
 
-const AdminRoute = ({ children }) => {
-  const { user, isLoading } = useAuth();
+// const AdminRoute = ({ children }) => {
+//   const { user, isLoading } = useAuth();
 
-  if (isLoading) {
-    return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
-        <p>Đang kiểm tra quyền Admin...</p>
-      </div>
-    );
-  }
+//   if (isLoading) {
+//     return (
+//       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+//         <p>Đang kiểm tra quyền Admin...</p>
+//       </div>
+//     );
+//   }
 
-  return user?.role === "admin" ? children : <Navigate to="/home" replace />;
-};
+//   return user?.role === "admin" ? children : <Navigate to="/home" replace />;
+// };
 
 function App() {
   return (
@@ -48,35 +49,36 @@ function App() {
           <Route
             path="/admin/dashboard"
             element={
-              <AdminRoute>
-                <Dashboard />
-              </AdminRoute>
+              // <AdminRoute>
+              <Dashboard />
+              // </AdminRoute>
             }
           />
           <Route
             path="/admin/users"
             element={
-              <AdminRoute>
-                <Users />
-              </AdminRoute>
+              // <AdminRoute>
+              <Users />
+              // </AdminRoute>
             }
           />
           <Route
             path="/admin/games"
             element={
-              <AdminRoute>
-                <Games />
-              </AdminRoute>
+              // <AdminRoute>
+              <Games />
+              // </AdminRoute>
             }
           />
           <Route
             path="/admin/games/:gameId/config"
             element={
-              <AdminRoute>
-                <GameConfig />
-              </AdminRoute>
+              // <AdminRoute>
+              <GameConfig />
+              // </AdminRoute>
             }
           />
+          <Route path="/game/:gameId/play" element={<GamePlayPage />} />
         </Route>
 
         {/* Fallback - Redirect về trang chủ nếu gõ sai URL */}
