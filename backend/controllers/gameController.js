@@ -1,4 +1,4 @@
-const db = require('../configs/db');
+const db = require("../configs/db");
 
 /**
  * GET /api/games
@@ -6,19 +6,19 @@ const db = require('../configs/db');
  */
 exports.getAllGames = async (req, res) => {
   try {
-    const games = await db('games')
-      .where('is_active', true)
-      .select('id', 'slug', 'name', 'config', 'created_at', 'updated_at');
+    const games = await db("games")
+      .where("is_active", true)
+      .select("id", "slug", "name", "config", "created_at", "updated_at");
 
     res.status(200).json({
-      status: 'success',
-      data: games
+      status: "success",
+      data: games,
     });
   } catch (error) {
-    console.error('Error fetching games:', error);
+    console.error("Error fetching games:", error);
     res.status(500).json({
-      status: 'error',
-      message: 'Không thể lấy danh sách game'
+      status: "error",
+      message: "Không thể lấy danh sách game",
     });
   }
 };
@@ -31,26 +31,24 @@ exports.getGameBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
 
-    const game = await db('games')
-      .where('slug', slug)
-      .first();
+    const game = await db("games").where("slug", slug).first();
 
     if (!game) {
       return res.status(404).json({
-        status: 'error',
-        message: 'Không tìm thấy game'
+        status: "error",
+        message: "Không tìm thấy game",
       });
     }
 
     res.status(200).json({
-      status: 'success',
-      data: game
+      status: "success",
+      data: game,
     });
   } catch (error) {
-    console.error('Error fetching game:', error);
+    console.error("Error fetching game:", error);
     res.status(500).json({
-      status: 'error',
-      message: 'Không thể lấy thông tin game'
+      status: "error",
+      message: "Không thể lấy thông tin game",
     });
   }
 };
@@ -61,68 +59,70 @@ exports.getGameBySlug = async (req, res) => {
  */
 exports.saveGameSession = async (req, res) => {
   try {
-    const userId = req.user.id; 
+    const userId = req.user.id;
     const { game_id, matrix_state, current_score, elapsed_time } = req.body;
 
     if (!game_id || !matrix_state) {
       return res.status(400).json({
-        status: 'error',
-        message: 'Thiếu thông tin game_id hoặc matrix_state'
+        status: "error",
+        message: "Thiếu thông tin game_id hoặc matrix_state",
       });
     }
 
-    const game = await db('games').where('id', game_id).first();
+    const game = await db("games").where("id", game_id).first();
     if (!game) {
       return res.status(404).json({
-        status: 'error',
-        message: 'Không tìm thấy game'
+        status: "error",
+        message: "Không tìm thấy game",
       });
     }
 
     // Kiểm tra session đã tồn tại chưa
-    const existingSession = await db('game_sessions')
+    const existingSession = await db("game_sessions")
       .where({
         user_id: userId,
-        game_id: game_id
+        game_id: game_id,
       })
       .first();
 
     let session;
     if (existingSession) {
-      await db('game_sessions')
-        .where('id', existingSession.id)
+      await db("game_sessions")
+        .where("id", existingSession.id)
         .update({
           matrix_state: JSON.stringify(matrix_state),
           current_score: current_score || 0,
           elapsed_time: elapsed_time || 0,
-          updated_at: db.fn.now()
+          updated_at: db.fn.now(),
         });
 
-      session = await db('game_sessions').where('id', existingSession.id).first();
+      session = await db("game_sessions")
+        .where("id", existingSession.id)
+        .first();
     } else {
-      const [newSession] = await db('game_sessions')
+      const [newSession] = await db("game_sessions")
         .insert({
           user_id: userId,
           game_id: game_id,
           matrix_state: JSON.stringify(matrix_state),
           current_score: current_score || 0,
-          elapsed_time: elapsed_time || 0
+          elapsed_time: elapsed_time || 0,
         })
-        .returning('*');
+        .returning("*");
 
       session = newSession;
     }
 
     res.status(200).json({
-      status: 'success',
-      message: 'Đã lưu trạng thái game',
-      data: session
+      status: "success",
+      message: "Đã lưu trạng thái game",
+      data: session,
     });
   } catch (error) {
-    console.error('Error saving game session:', error);
+    console.error("Error saving game session:", error);
     res.status(500).json({
-      status: 'error',
-      message: 'Không thể lưu trạng thái game'
+      status: "error",
+      message: "Không thể lưu trạng thái game",
     });
   }
 };
@@ -136,30 +136,30 @@ exports.getGameSession = async (req, res) => {
     const userId = req.user.id;
     const { game_id } = req.params;
 
-    const session = await db('game_sessions')
+    const session = await db("game_sessions")
       .where({
         user_id: userId,
-        game_id: game_id
+        game_id: game_id,
       })
-      .orderBy('updated_at', 'desc')
+      .orderBy("updated_at", "desc")
       .first();
 
     if (!session) {
       return res.status(404).json({
-        status: 'error',
-        message: 'Không tìm thấy session'
+        status: "error",
+        message: "Không tìm thấy session",
       });
     }
 
     res.status(200).json({
-      status: 'success',
-      data: session
+      status: "success",
+      data: session,
     });
   } catch (error) {
-    console.error('Error fetching game session:', error);
+    console.error("Error fetching game session:", error);
     res.status(500).json({
-      status: 'error',
-      message: 'Không thể lấy trạng thái game'
+      status: "error",
+      message: "Không thể lấy trạng thái game",
     });
   }
 };
@@ -174,11 +174,11 @@ exports.updateGame = async (req, res) => {
     const { name, slug, is_active, config } = req.body;
 
     // Kiểm tra game có tồn tại
-    const game = await db('games').where('id', game_id).first();
+    const game = await db("games").where("id", game_id).first();
     if (!game) {
       return res.status(404).json({
-        status: 'error',
-        message: 'Không tìm thấy game'
+        status: "error",
+        message: "Không tìm thấy game",
       });
     }
 
@@ -189,30 +189,28 @@ exports.updateGame = async (req, res) => {
     if (config !== undefined) updateData.config = JSON.stringify(config);
     updateData.updated_at = db.fn.now();
 
-    await db('games')
-      .where('id', game_id)
-      .update(updateData);
+    await db("games").where("id", game_id).update(updateData);
 
-    const updatedGame = await db('games').where('id', game_id).first();
+    const updatedGame = await db("games").where("id", game_id).first();
 
     res.status(200).json({
-      status: 'success',
-      message: 'Đã cập nhật game',
-      data: updatedGame
+      status: "success",
+      message: "Đã cập nhật game",
+      data: updatedGame,
     });
   } catch (error) {
-    console.error('Error updating game:', error);
+    console.error("Error updating game:", error);
 
-    if (error.code === '23505') {
+    if (error.code === "23505") {
       return res.status(400).json({
-        status: 'error',
-        message: 'Slug đã tồn tại'
+        status: "error",
+        message: "Slug đã tồn tại",
       });
     }
 
     res.status(500).json({
-      status: 'error',
-      message: 'Không thể cập nhật game'
+      status: "error",
+      message: "Không thể cập nhật game",
     });
   }
 };
@@ -229,69 +227,66 @@ exports.createPlayHistory = async (req, res) => {
     // Validate input
     if (!game_id || score === undefined || !duration) {
       return res.status(400).json({
-        status: 'error',
-        message: 'Thiếu thông tin game_id, score hoặc duration'
+        status: "error",
+        message: "Thiếu thông tin game_id, score hoặc duration",
       });
     }
 
-    const game = await db('games').where('id', game_id).first();
+    const game = await db("games").where("id", game_id).first();
     if (!game) {
       return res.status(404).json({
-        status: 'error',
-        message: 'Không tìm thấy game'
+        status: "error",
+        message: "Không tìm thấy game",
       });
     }
 
-
-    const [history] = await db('play_history')
+    const [history] = await db("play_history")
       .insert({
         user_id: userId,
         game_id: game_id,
         score: score,
-        duration: duration
+        duration: duration,
       })
-      .returning('*');
+      .returning("*");
 
-    const leaderboard = await db('leaderboards')
+    const leaderboard = await db("leaderboards")
       .where({
         user_id: userId,
-        game_id: game_id
+        game_id: game_id,
       })
       .first();
 
     if (!leaderboard || score > leaderboard.high_score) {
       if (leaderboard) {
-        await db('leaderboards')
-          .where('id', leaderboard.id)
-          .update({
-            high_score: score,
-            achieved_at: db.fn.now()
-          });
+        await db("leaderboards").where("id", leaderboard.id).update({
+          high_score: score,
+          achieved_at: db.fn.now(),
+        });
       } else {
-        await db('leaderboards').insert({
+        await db("leaderboards").insert({
           user_id: userId,
           game_id: game_id,
-          high_score: score
+          high_score: score,
         });
       }
     }
-    await db('game_sessions')
+    await db("game_sessions")
       .where({
         user_id: userId,
-        game_id: game_id
+        game_id: game_id,
       })
       .delete();
 
     res.status(201).json({
-      status: 'success',
-      message: 'Đã lưu lịch sử chơi',
-      data: history
+      status: "success",
+      message: "Đã lưu lịch sử chơi",
+      data: history,
     });
   } catch (error) {
-    console.error('Error creating play history:', error);
+    console.error("Error creating play history:", error);
     res.status(500).json({
-      status: 'error',
-      message: 'Không thể lưu lịch sử chơi'
+      status: "error",
+      message: "Không thể lưu lịch sử chơi",
     });
   }
 };

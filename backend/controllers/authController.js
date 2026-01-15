@@ -1,5 +1,7 @@
 const UserModel = require("../models/userModel");
 const { generateToken } = require("../configs/auth");
+const { generateOTP, sendOTPEmail } = require("../configs/email");
+const { saveOTP, checkOTP, verifyOTP } = require("../configs/otpStore");
 
 class AuthController {
   // POST /api/auth/register
@@ -219,6 +221,130 @@ class AuthController {
       res.status(500).json({
         status: "error",
         message: "Lỗi server khi đăng xuất",
+        error: error.message,
+      });
+    }
+  }
+
+  // POST /api/auth/forgot-password - Gửi OTP qua email
+  static async forgotPassword(req, res) {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({
+          status: "error",
+          message: "Email là bắt buộc",
+        });
+      }
+
+      // Kiểm tra email có tồn tại không
+      const user = await UserModel.findByEmail(email);
+      if (!user) {
+        return res.status(404).json({
+          status: "error",
+          message: "Email không tồn tại trong hệ thống",
+        });
+      }
+
+      // Tạo và lưu OTP
+      const otp = generateOTP();
+      saveOTP(email, otp);
+
+      // Gửi email
+      await sendOTPEmail(email, otp);
+
+      res.status(200).json({
+        status: "success",
+        message: "Mã OTP đã được gửi đến email của bạn",
+      });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({
+        status: "error",
+        message: "Không thể gửi mã OTP. Vui lòng thử lại sau",
+        error: error.message,
+      });
+    }
+  }
+
+  // POST /api/auth/verify-otp - Xác thực OTP (không xóa OTP)
+  static async verifyOTP(req, res) {
+    try {
+      const { email, otp } = req.body;
+
+      if (!email || !otp) {
+        return res.status(400).json({
+          status: "error",
+          message: "Email và OTP là bắt buộc",
+        });
+      }
+
+      // Dùng checkOTP thay vì verifyOTP để không xóa OTP
+      const result = checkOTP(email, otp);
+
+      if (!result.valid) {
+        return res.status(400).json({
+          status: "error",
+          message: result.message,
+        });
+      }
+
+      res.status(200).json({
+        status: "success",
+        message: "OTP hợp lệ",
+      });
+    } catch (error) {
+      console.error("Verify OTP error:", error);
+      res.status(500).json({
+        status: "error",
+        message: "Lỗi xác thực OTP",
+        error: error.message,
+      });
+    }
+  }
+
+  // POST /api/auth/reset-password - Đặt lại mật khẩu sau khi xác thực OTP
+  static async resetPassword(req, res) {
+    try {
+      const { email, otp, newPassword } = req.body;
+
+      if (!email || !otp || !newPassword) {
+        return res.status(400).json({
+          status: "error",
+          message: "Email, OTP và mật khẩu mới là bắt buộc",
+        });
+      }
+
+      // Validate password length
+      if (newPassword.length < 6) {
+        return res.status(400).json({
+          status: "error",
+          message: "Mật khẩu phải có ít nhất 6 ký tự",
+        });
+      }
+
+      // Xác thực OTP
+      const result = verifyOTP(email, otp);
+      if (!result.valid) {
+        return res.status(400).json({
+          status: "error",
+          message: result.message,
+        });
+      }
+
+      // Cập nhật mật khẩu
+      await UserModel.updatePassword(email, newPassword);
+
+      res.status(200).json({
+        status: "success",
+        message: "Đặt lại mật khẩu thành công",
+      });
+    } catch (error) {
+      console.error("Reset password error:", error);
+      res.status(500).json({
+        status: "error",
+        message: "Không thể đặt lại mật khẩu",
         error: error.message,
       });
     }
