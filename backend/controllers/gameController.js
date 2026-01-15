@@ -24,6 +24,29 @@ exports.getAllGames = async (req, res) => {
 };
 
 /**
+ * GET /api/games/all
+ * Lấy tất cả games (bao gồm cả is_active = false) - cho admin
+ */
+exports.getAllGamesForAdmin = async (req, res) => {
+  try {
+    const games = await db('games')
+      .select('id', 'slug', 'name', 'config', 'is_active', 'created_at', 'updated_at')
+      .orderBy('created_at', 'desc');
+
+    res.status(200).json({
+      status: 'success',
+      data: games
+    });
+  } catch (error) {
+    console.error('Error fetching all games:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Không thể lấy danh sách game'
+    });
+  }
+};
+
+/**
  * GET /api/games/:slug
  * Lấy chi tiết và config của một game cụ thể
  */

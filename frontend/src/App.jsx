@@ -38,7 +38,22 @@ function App() {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/ranking" element={<Ranking />} />
-
+        {/* <Route
+            path="/admin/games"
+            element={
+              // <AdminRoute>
+              <Games />
+              // </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/games/:gameId/config"
+            element={
+              // <AdminRoute>
+              <GameConfig />
+              // </AdminRoute>
+            }
+          /> */}
         {/* --- PROTECTED ROUTES (Phải đăng nhập mới vào được) --- */}
         <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={<Profile />} />

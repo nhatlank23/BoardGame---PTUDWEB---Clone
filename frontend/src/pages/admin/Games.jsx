@@ -1,77 +1,90 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Edit, Eye } from "lucide-react";
+import { Edit } from "lucide-react";
+import { gameService } from "@/services/gameService";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Games() {
-  const [games, setGames] = useState([
-    {
-      id: "caro",
-      name: "Caro",
-      category: "Đối kháng",
-      enabled: true,
-      plays: 5420,
-      image: "/caro-game.jpg",
-    },
-    {
-      id: "tic-tac-toe",
-      name: "Tic Tac Toe",
-      category: "Đối kháng",
-      enabled: true,
-      plays: 2780,
-      image: "/tic-tac-toe.jpg",
-    },
-    {
-      id: "snake",
-      name: "Snake",
-      category: "Hành động",
-      enabled: true,
-      plays: 4280,
-      image: "/classic-snake-game.png",
-    },
-    {
-      id: "candy-rush",
-      name: "Candy Rush",
-      category: "Hành động",
-      enabled: false,
-      plays: 890,
-      image: "/candy-game.jpg",
-    },
-    {
-      id: "memory",
-      name: "Memory Game",
-      category: "Trí tuệ",
-      enabled: true,
-      plays: 2890,
-      image: "/memory-card-game.png",
-    },
-    {
-      id: "drawing",
-      name: "Bản vẽ tự do",
-      category: "Trí tuệ",
-      enabled: false,
-      plays: 450,
-      image: "/candy-game.jpg",
-    },
-  ]);
+  const { toast } = useToast();
+  const [games, setGames] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const toggleGame = (gameId) => {
-    setGames(
-      games.map((game) =>
-        game.id === gameId ? { ...game, enabled: !game.enabled } : game
-      )
-    );
+  // Lấy danh sách tất cả games (bao gồm cả is_active = false)
+  useEffect(() => {
+    fetchAllGames();
+  }, []);
+
+  const fetchAllGames = async () => {
+    try {
+      setLoading(true);
+      // Gọi API nhưng lấy tất cả games (không filter is_active)
+      const response = await gameService.getAllGamesForAdmin();
+      
+      if (response.status === "success") {
+        setGames(response.data);
+      } else {
+        toast({
+          title: "Lỗi",
+          description: response.message || "Không thể tải danh sách game",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching games:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể kết nối đến server",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleGame = async (gameId, currentStatus) => {
+    try {
+      // Cập nhật trạng thái is_active
+      const response = await gameService.updateGame(gameId, {
+        is_active: !currentStatus,
+      });
+
+      if (response.status === "success") {
+        // Cập nhật state local
+        setGames(
+          games.map((game) =>
+            game.id === gameId ? { ...game, is_active: !currentStatus } : game
+          )
+        );
+        toast({
+          title: "Thành công",
+          description: `Đã ${!currentStatus ? 'bật' : 'tắt'} game`,
+        });
+      } else {
+        toast({
+          title: "Lỗi",
+          description: response.message || "Không thể cập nhật game",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error toggling game:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật trạng thái game",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -93,53 +106,76 @@ export default function Games() {
               <CardTitle className="text-2xl font-semibold">Danh sách game</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {games.map((game) => (
-                  <div
-                    key={game.id}
-                    className="flex items-center gap-4 p-4 border rounded-lg"
-                  >
-                    <img
-                      src={game.image || "/placeholder.svg"}
-                      alt={game.name}
-                      className="h-20 w-28 object-cover rounded"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-lg">{game.name}</h3>
-
-                        {game.enabled ? (
-                          <Badge variant="default" className="bg-green-500">
-                            Hoạt động
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">Tắt</Badge>
-                        )}
+              {loading ? (
+                <div className="text-center py-12">
+                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                  <p className="mt-4 text-muted-foreground">Đang tải danh sách game...</p>
+                </div>
+              ) : games.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">Chưa có game nào trong hệ thống</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {games.map((game) => {
+                    const config = typeof game.config === 'string' ? JSON.parse(game.config) : (game.config || {});
+                    
+                    return (
+                      <div
+                        key={game.id}
+                        className="flex items-center gap-4 p-4 border rounded-lg"
+                      >
+                        <div className="h-20 w-28 rounded bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center overflow-hidden">
+                          {config.image ? (
+                            <img
+                              src={config.image}
+                              alt={game.name}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-white font-bold text-xl">{game.name.charAt(0)}</span>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-lg">{game.name}</h3>
+                            <Badge variant="secondary" className="text-xs">{game.slug}</Badge>
+                            {game.is_active ? (
+                              <Badge variant="default" className="bg-green-500">
+                                Hoạt động
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary">Tắt</Badge>
+                            )}
+                          </div>
+                          {config.description && (
+                            <p className="text-sm text-muted-foreground">
+                              {config.description}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">
+                              {game.is_active ? "Bật" : "Tắt"}
+                            </span>
+                            <Switch
+                              checked={game.is_active}
+                              onCheckedChange={() => toggleGame(game.id, game.is_active)}
+                            />
+                          </div>
+                          <Button variant="outline" size="sm" asChild>
+                            <Link to={`/admin/games/${game.id}/config`}>
+                              <Edit className="h-4 w-4 mr-1" />
+                              Chỉnh sửa
+                            </Link>
+                          </Button>
+                        </div>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {game.plays.toLocaleString()} lượt chơi
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">
-                          {game.enabled ? "Bật" : "Tắt"}
-                        </span>
-                        <Switch
-                          checked={game.enabled}
-                          onCheckedChange={() => toggleGame(game.id)}
-                        />
-                      </div>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link to={`/admin/games/${game.id}/config`}>
-                          <Edit className="h-4 w-4 mr-1" />
-                          Chỉnh sửa
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
