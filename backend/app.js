@@ -37,11 +37,13 @@ const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const gameRoutes = require("./routes/gameRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const leaderboardRoutes = require("./routes/leaderboardRoute");
 
 // Mount routes directly
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/leaderboards", leaderboardRoutes);
 app.use("/api", gameRoutes);
 
 app.use((req, res) => {
