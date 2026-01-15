@@ -15,16 +15,7 @@ class UserModel {
         dark_mode: true,
         is_banned: false,
       })
-      .returning([
-        "id",
-        "username",
-        "email",
-        "role",
-        "avatar_url",
-        "dark_mode",
-        "is_banned",
-        "created_at",
-      ]);
+      .returning(["id", "username", "email", "role", "avatar_url", "dark_mode", "is_banned", "created_at"]);
 
     return user;
   }
@@ -43,19 +34,7 @@ class UserModel {
 
   // Tìm user theo ID
   static async findById(id) {
-    const user = await db("users")
-      .where({ id })
-      .select(
-        "id",
-        "username",
-        "email",
-        "role",
-        "avatar_url",
-        "dark_mode",
-        "is_banned",
-        "created_at"
-      )
-      .first();
+    const user = await db("users").where({ id }).select("id", "username", "email", "role", "avatar_url", "dark_mode", "is_banned", "created_at").first();
     return user;
   }
 
@@ -66,18 +45,7 @@ class UserModel {
 
   // Lấy tất cả users (cho admin)
   static async getAllUsers() {
-    return await db("users")
-      .select(
-        "id",
-        "username",
-        "email",
-        "role",
-        "avatar_url",
-        "dark_mode",
-        "is_banned",
-        "created_at"
-      )
-      .orderBy("created_at", "desc");
+    return await db("users").select("id", "username", "email", "role", "avatar_url", "dark_mode", "is_banned", "created_at").orderBy("created_at", "desc");
   }
 
   // Update user
@@ -85,16 +53,7 @@ class UserModel {
     const [user] = await db("users")
       .where({ id })
       .update(data)
-      .returning([
-        "id",
-        "username",
-        "email",
-        "role",
-        "avatar_url",
-        "dark_mode",
-        "is_banned",
-        "updated_at",
-      ]);
+      .returning(["id", "username", "email", "role", "avatar_url", "dark_mode", "is_banned", "updated_at"]);
     return user;
   }
 

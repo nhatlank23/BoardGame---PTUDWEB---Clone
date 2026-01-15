@@ -29,4 +29,19 @@ router.get("/messages/:receiver_id", userController.getMessages);
 // Send message endpoint
 router.post("/messages", userController.sendMessage);
 
+// Get user
+router.get("/me", userController.getUser);
+
+// Update user information
+router.put("/me", userController.updateUserInfo);
+
+// Update user settings
+router.put("/settings", userController.updatedUserSettings);
+
+// Get user by ID
+router.get("/:id", userController.getUserById);
+
+// Get user achievements
+router.get("/:id/achievements", userController.getUserAchievements);
+
 module.exports = router;

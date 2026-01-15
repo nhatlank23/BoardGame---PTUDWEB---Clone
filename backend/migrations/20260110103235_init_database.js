@@ -39,11 +39,7 @@ exports.up = async function (knex) {
   await knex.schema.createTable("game_sessions", (table) => {
     table.uuid("id").primary().defaultTo(knex.raw("uuid_generate_v4()"));
     table.uuid("user_id").references("id").inTable("users").onDelete("CASCADE"); // Xóa user -> xóa session
-    table
-      .integer("game_id")
-      .references("id")
-      .inTable("games")
-      .onDelete("CASCADE");
+    table.integer("game_id").references("id").inTable("games").onDelete("CASCADE");
     table.jsonb("matrix_state"); // Trạng thái bàn cờ
     table.integer("current_score").defaultTo(0);
     table.integer("elapsed_time").defaultTo(0);
@@ -54,11 +50,7 @@ exports.up = async function (knex) {
   await knex.schema.createTable("play_history", (table) => {
     table.uuid("id").primary().defaultTo(knex.raw("uuid_generate_v4()"));
     table.uuid("user_id").references("id").inTable("users").onDelete("CASCADE");
-    table
-      .integer("game_id")
-      .references("id")
-      .inTable("games")
-      .onDelete("CASCADE");
+    table.integer("game_id").references("id").inTable("games").onDelete("CASCADE");
     table.integer("score").notNullable();
     table.integer("duration").notNullable(); // Giây
     table.timestamp("played_at").defaultTo(knex.fn.now());
@@ -71,16 +63,8 @@ exports.up = async function (knex) {
   // Bảng Friendships
   await knex.schema.createTable("friendships", (table) => {
     table.uuid("id").primary().defaultTo(knex.raw("uuid_generate_v4()"));
-    table
-      .uuid("requester_id")
-      .references("id")
-      .inTable("users")
-      .onDelete("CASCADE");
-    table
-      .uuid("addressee_id")
-      .references("id")
-      .inTable("users")
-      .onDelete("CASCADE");
+    table.uuid("requester_id").references("id").inTable("users").onDelete("CASCADE");
+    table.uuid("addressee_id").references("id").inTable("users").onDelete("CASCADE");
     table.string("status").defaultTo("pending"); // pending, accepted, declined
     table.timestamps(true, true);
 
@@ -91,16 +75,8 @@ exports.up = async function (knex) {
   // Bảng Messages
   await knex.schema.createTable("messages", (table) => {
     table.uuid("id").primary().defaultTo(knex.raw("uuid_generate_v4()"));
-    table
-      .uuid("sender_id")
-      .references("id")
-      .inTable("users")
-      .onDelete("CASCADE");
-    table
-      .uuid("receiver_id")
-      .references("id")
-      .inTable("users")
-      .onDelete("CASCADE");
+    table.uuid("sender_id").references("id").inTable("users").onDelete("CASCADE");
+    table.uuid("receiver_id").references("id").inTable("users").onDelete("CASCADE");
     table.text("content").notNullable();
     table.timestamp("created_at").defaultTo(knex.fn.now());
   });
@@ -109,11 +85,7 @@ exports.up = async function (knex) {
   await knex.schema.createTable("leaderboards", (table) => {
     table.uuid("id").primary().defaultTo(knex.raw("uuid_generate_v4()"));
     table.uuid("user_id").references("id").inTable("users").onDelete("CASCADE");
-    table
-      .integer("game_id")
-      .references("id")
-      .inTable("games")
-      .onDelete("CASCADE");
+    table.integer("game_id").references("id").inTable("games").onDelete("CASCADE");
     table.integer("high_score").notNullable();
     table.timestamp("achieved_at").defaultTo(knex.fn.now());
   });
@@ -130,11 +102,7 @@ exports.up = async function (knex) {
   // Bảng User Achievements (Bảng nối)
   await knex.schema.createTable("user_achievements", (table) => {
     table.uuid("user_id").references("id").inTable("users").onDelete("CASCADE");
-    table
-      .integer("achievement_id")
-      .references("id")
-      .inTable("achievements")
-      .onDelete("CASCADE");
+    table.integer("achievement_id").references("id").inTable("achievements").onDelete("CASCADE");
     table.timestamp("earned_at").defaultTo(knex.fn.now());
 
     // Khóa chính phức hợp (1 user không nhận 2 lần 1 huy hiệu)
