@@ -1,4 +1,4 @@
-const db = require('../configs/db');
+const gameModel = require('../models/gameModel');
 
 /**
  * GET /api/games
@@ -6,10 +6,7 @@ const db = require('../configs/db');
  */
 exports.getAllGames = async (req, res) => {
   try {
-    const games = await db('games')
-      .where('is_active', true)
-      .select('id', 'slug', 'name', 'config', 'created_at', 'updated_at');
-
+    const games = await gameModel.getActiveGames();
     res.status(200).json({
       status: 'success',
       data: games
@@ -29,10 +26,7 @@ exports.getAllGames = async (req, res) => {
  */
 exports.getAllGamesForAdmin = async (req, res) => {
   try {
-    const games = await db('games')
-      .select('id', 'slug', 'name', 'config', 'is_active', 'created_at', 'updated_at')
-      .orderBy('created_at', 'desc');
-
+    const games = await gameModel.getAllGames();
     res.status(200).json({
       status: 'success',
       data: games
@@ -53,10 +47,7 @@ exports.getAllGamesForAdmin = async (req, res) => {
 exports.getGameBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
-
-    const game = await db('games')
-      .where('slug', slug)
-      .first();
+    const game = await gameModel.getGameBySlug(slug);
 
     if (!game) {
       return res.status(404).json({
@@ -94,7 +85,7 @@ exports.saveGameSession = async (req, res) => {
       });
     }
 
-    const game = await db('games').where('id', game_id).first();
+    const game = await gameModel.getGameById(game_id);
     if (!game) {
       return res.status(404).json({
         status: 'error',
@@ -102,39 +93,13 @@ exports.saveGameSession = async (req, res) => {
       });
     }
 
-    // Kiểm tra session đã tồn tại chưa
-    const existingSession = await db('game_sessions')
-      .where({
-        user_id: userId,
-        game_id: game_id
-      })
-      .first();
-
-    let session;
-    if (existingSession) {
-      await db('game_sessions')
-        .where('id', existingSession.id)
-        .update({
-          matrix_state: JSON.stringify(matrix_state),
-          current_score: current_score || 0,
-          elapsed_time: elapsed_time || 0,
-          updated_at: db.fn.now()
-        });
-
-      session = await db('game_sessions').where('id', existingSession.id).first();
-    } else {
-      const [newSession] = await db('game_sessions')
-        .insert({
-          user_id: userId,
-          game_id: game_id,
-          matrix_state: JSON.stringify(matrix_state),
-          current_score: current_score || 0,
-          elapsed_time: elapsed_time || 0
-        })
-        .returning('*');
-
-      session = newSession;
-    }
+    const session = await gameModel.saveOrUpdateGameSession(
+      userId,
+      game_id,
+      matrix_state,
+      current_score || 0,
+      elapsed_time || 0
+    );
 
     res.status(200).json({
       status: 'success',
@@ -159,13 +124,7 @@ exports.getGameSession = async (req, res) => {
     const userId = req.user.id;
     const { game_id } = req.params;
 
-    const session = await db('game_sessions')
-      .where({
-        user_id: userId,
-        game_id: game_id
-      })
-      .orderBy('updated_at', 'desc')
-      .first();
+    const session = await gameModel.getLatestGameSession(userId, game_id);
 
     if (!session) {
       return res.status(404).json({
@@ -196,8 +155,7 @@ exports.updateGame = async (req, res) => {
     const { game_id } = req.params;
     const { name, slug, is_active, config } = req.body;
 
-    // Kiểm tra game có tồn tại
-    const game = await db('games').where('id', game_id).first();
+    const game = await gameModel.getGameById(game_id);
     if (!game) {
       return res.status(404).json({
         status: 'error',
@@ -209,14 +167,9 @@ exports.updateGame = async (req, res) => {
     if (name !== undefined) updateData.name = name;
     if (slug !== undefined) updateData.slug = slug;
     if (is_active !== undefined) updateData.is_active = is_active;
-    if (config !== undefined) updateData.config = JSON.stringify(config);
-    updateData.updated_at = db.fn.now();
+    if (config !== undefined) updateData.config = config;
 
-    await db('games')
-      .where('id', game_id)
-      .update(updateData);
-
-    const updatedGame = await db('games').where('id', game_id).first();
+    const updatedGame = await gameModel.updateGame(game_id, updateData);
 
     res.status(200).json({
       status: 'success',
@@ -249,7 +202,6 @@ exports.createPlayHistory = async (req, res) => {
     const userId = req.user.id;
     const { game_id, score, duration } = req.body;
 
-    // Validate input
     if (!game_id || score === undefined || !duration) {
       return res.status(400).json({
         status: 'error',
@@ -257,7 +209,7 @@ exports.createPlayHistory = async (req, res) => {
       });
     }
 
-    const game = await db('games').where('id', game_id).first();
+    const game = await gameModel.getGameById(game_id);
     if (!game) {
       return res.status(404).json({
         status: 'error',
@@ -265,45 +217,7 @@ exports.createPlayHistory = async (req, res) => {
       });
     }
 
-
-    const [history] = await db('play_history')
-      .insert({
-        user_id: userId,
-        game_id: game_id,
-        score: score,
-        duration: duration
-      })
-      .returning('*');
-
-    const leaderboard = await db('leaderboards')
-      .where({
-        user_id: userId,
-        game_id: game_id
-      })
-      .first();
-
-    if (!leaderboard || score > leaderboard.high_score) {
-      if (leaderboard) {
-        await db('leaderboards')
-          .where('id', leaderboard.id)
-          .update({
-            high_score: score,
-            achieved_at: db.fn.now()
-          });
-      } else {
-        await db('leaderboards').insert({
-          user_id: userId,
-          game_id: game_id,
-          high_score: score
-        });
-      }
-    }
-    await db('game_sessions')
-      .where({
-        user_id: userId,
-        game_id: game_id
-      })
-      .delete();
+    const history = await gameModel.createPlayHistoryAndUpdateLeaderboard(userId, game_id, score, duration);
 
     res.status(201).json({
       status: 'success',
