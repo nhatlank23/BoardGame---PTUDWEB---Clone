@@ -165,9 +165,14 @@ export default function HomePage() {
                 renderMatrix()
               )}
             </div>
-
             <div className="w-full max-w-sm">
-              <GameController />
+              <GameController
+                onLeft={handlePrev}
+                onRight={handleNext}
+                onEnter={handleEnter}
+                onBack={handleBack}
+                onHint={handleHint}
+              />
             </div>
           </div>
 
