@@ -93,7 +93,7 @@ function App() {
               // </AdminRoute>
             }
           />
-          <Route path="/game/:gameId/play" element={<GamePlayPage />} />
+          <Route path="/game/:slug/play" element={<GamePlayPage />} />
         </Route>
 
         {/* Fallback - Redirect về trang chủ nếu gõ sai URL */}
