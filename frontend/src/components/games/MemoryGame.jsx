@@ -144,7 +144,7 @@ export default function MemoryGame() {
 
             <div
                 id="memory-grid"
-                className="grid grid-cols-4 gap-3 bg-slate-800 p-4 rounded-xl shadow-2xl [&.reveal-all_div_span]:opacity-100 [&.reveal-all_div]:bg-purple-900"
+                className="grid grid-cols-4 gap-4 bg-slate-800 p-6 rounded-2xl shadow-2xl [&.reveal-all_div_span]:opacity-100 [&.reveal-all_div]:bg-purple-900"
             >
                 {cards.map((icon, i) => {
                     const isFlipped = flippedIndices.includes(i);
@@ -156,18 +156,18 @@ export default function MemoryGame() {
                         <div
                             key={i}
                             className={`
-                w-16 h-16 rounded-lg flex items-center justify-center text-3xl transition-all duration-300 cursor-pointer border-2
-                ${isCursor ? 'border-yellow-400 scale-110 z-10 shadow-[0_0_15px_#facc15]' : 'border-slate-600'}
+                w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-xl flex items-center justify-center text-4xl sm:text-5xl transition-all duration-300 cursor-pointer border-2
+                ${isCursor ? 'border-yellow-400 scale-110 z-10 shadow-[0_0_20px_rgba(250,204,21,0.4)]' : 'border-slate-600'}
                 ${isMatched ? 'bg-emerald-600/20 border-emerald-500' : ''}
-                ${isFlipped ? 'bg-indigo-600 border-indigo-400 rotate-y-180' : 'bg-slate-700'}
+                ${isFlipped ? 'bg-indigo-600 border-indigo-400 rotate-y-180' : 'bg-slate-700 shadow-inner'}
               `}
                         >
-                            <span className={`transition-opacity duration-200 ${isRevealed ? 'opacity-100' : 'opacity-0'}`}>
+                            <span className={`transition-opacity duration-300 ${isRevealed ? 'opacity-100' : 'opacity-0'} pointer-events-none`}>
                                 {icon}
                             </span>
 
                             {!isRevealed && (
-                                <HelpCircle className="w-6 h-6 text-slate-600 absolute" />
+                                <HelpCircle className="w-8 h-8 sm:w-10 sm:h-10 text-slate-600 absolute opacity-50" />
                             )}
                         </div>
                     );

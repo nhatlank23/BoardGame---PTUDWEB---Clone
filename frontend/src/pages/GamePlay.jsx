@@ -5,10 +5,10 @@ import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { GameStatsCard } from "@/components/games/GameStatsCard";
 import { GameController } from "@/components/games/GameController";
-import SnakeGame from "@/components/games/SnakeGame";
+//import SnakeGame from "@/components/games/SnakeGame";
 import MemoryGame from "@/components/games/MemoryGame";
 import CaroGame from "@/components/games/CaroGame";
-import Match3Game from "@/components/games/Match3Game";
+//import Match3Game from "@/components/games/Match3Game";
 
 export default function GamePlay() {
   const { slug } = useParams();
@@ -17,11 +17,11 @@ export default function GamePlay() {
     switch (slug) {
       case "drawing": return <DrawingGame />;
       case "tic-tac-toe": return <TicTacToeGame />;
-      case "snake": return <SnakeGame />;
+      //case "snake": return <SnakeGame />;
       case "memory": return <MemoryGame />;
       case "caro-5": return <CaroGame winCount={5} />;
       case "caro-4": return <CaroGame winCount={4} />;
-      case "match-3": return <Match3Game />;
+      // case "match-3": return <Match3Game />;
       default: return (
         <div className="flex flex-col items-center justify-center text-slate-500">
           <p className="text-2xl font-mono">GAME_NOT_FOUND</p>

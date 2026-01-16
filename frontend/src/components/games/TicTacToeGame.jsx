@@ -149,21 +149,21 @@ export default function TicTacToeGame() {
                 )}
             </div>
 
-            <div className="grid grid-cols-3 gap-2 bg-slate-800 p-4 rounded-xl shadow-2xl border-4 border-slate-700">
+            <div className="grid grid-cols-3 gap-4 bg-slate-800 p-6 rounded-2xl shadow-2xl border-4 border-slate-700">
                 {board.map((cell, i) => (
                     <div
                         key={i}
                         className={`
-              w-24 h-24 flex items-center justify-center text-5xl font-black rounded-lg transition-all duration-200
-              ${i === cursorPos && isXNext && !winner ? 'bg-slate-600 ring-4 ring-white scale-105 z-10' : 'bg-slate-900'}
+              w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 flex items-center justify-center text-7xl font-black rounded-xl transition-all duration-300
+              ${i === cursorPos && isXNext && !winner ? 'bg-slate-600 ring-8 ring-white scale-105 z-10 shadow-lg' : 'bg-slate-900'}
               ${cell === 'X' ? 'text-red-500' : 'text-blue-500'}
               ${!isXNext && !winner ? 'opacity-80' : ''}
             `}
                     >
-                        {cell === 'X' && <X size={64} strokeWidth={2.5} />}
-                        {cell === 'O' && <Circle size={56} strokeWidth={3} />}
+                        {cell === 'X' && <X size={80} strokeWidth={3} />}
+                        {cell === 'O' && <Circle size={72} strokeWidth={4} />}
                         {i === cursorPos && isXNext && !cell && !winner && (
-                            <div className="w-4 h-4 rounded-full opacity-50 bg-red-500" />
+                            <div className="w-5 h-5 rounded-full opacity-40 bg-red-500 animate-pulse" />
                         )}
                     </div>
                 ))}
