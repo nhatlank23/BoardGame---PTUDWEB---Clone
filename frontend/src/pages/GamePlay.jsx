@@ -8,7 +8,7 @@ import { GameController } from "@/components/games/GameController";
 import SnakeGame from "@/components/games/SnakeGame";
 import MemoryGame from "@/components/games/MemoryGame";
 import CaroGame from "@/components/games/CaroGame";
-//import Match3Game from "@/components/games/Match3Game";
+import Match3Game from "@/components/games/Match3Game";
 
 export default function GamePlay() {
   const { slug } = useParams();
@@ -21,7 +21,7 @@ export default function GamePlay() {
       case "memory": return <MemoryGame />;
       case "caro-5": return <CaroGame winCount={5} />;
       case "caro-4": return <CaroGame winCount={4} />;
-      // case "match-3": return <Match3Game />;
+      case "match-3": return <Match3Game />;
       default: return (
         <div className="flex flex-col items-center justify-center text-slate-500">
           <p className="text-2xl font-mono">GAME_NOT_FOUND</p>
