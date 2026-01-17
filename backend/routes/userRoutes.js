@@ -1,7 +1,23 @@
 const express = require("express");
 const router = express.Router();
+const multer = require("multer");
 const userController = require("../controllers/userController");
 const authMiddleware = require("../middlewares/authMiddleware");
+
+// Configure multer for memory storage
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed"));
+    }
+  },
+});
 
 // Apply auth middleware to all routes
 router.use(authMiddleware);
@@ -37,6 +53,16 @@ router.put("/me", userController.updateUserInfo);
 
 // Update user settings
 router.put("/settings", userController.updatedUserSettings);
+
+// Profile endpoint
+router.put("/profile", userController.updateProfile);
+
+// Upload avatar endpoint
+router.post("/avatar", upload.single("avatar"), userController.uploadAvatar);
+
+// Stats and history endpoints
+router.get("/stats", userController.getUserStats);
+router.get("/history", userController.getUserHistory);
 
 // Get user by ID
 router.get("/:id", userController.getUserById);

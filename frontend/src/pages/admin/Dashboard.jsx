@@ -1,23 +1,62 @@
+import { useState, useEffect } from "react"
 import { Header } from "@/components/header"
 import { Sidebar } from "@/components/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Users, UserCheck, UserPlus, Gamepad2, TrendingUp } from "lucide-react"
+import { Users, UserCheck, UserPlus, Gamepad2 } from "lucide-react"
+import { adminService } from "@/services/adminService"
 
 export default function Dashboard() {
-  const stats = [
-    { label: "Tổng User", value: "1,245", icon: Users, change: "+12%", trend: "up" },
-    { label: "Online", value: "342", icon: UserCheck, change: "+5%", trend: "up" },
-    { label: "User mới", value: "89", icon: UserPlus, change: "+23%", trend: "up" },
-    { label: "Tổng game", value: "6", icon: Gamepad2, change: "0%", trend: "same" },
-  ]
+  const [stats] = useState([
+    { label: "Tổng User", value: "1,245", icon: Users },
+    { label: "Online", value: "342", icon: UserCheck },
+    { label: "User mới", value: "89", icon: UserPlus },
+    { label: "Tổng game", value: "6", icon: Gamepad2 },
+  ])
 
-  const popularGames = [
-    { name: "Caro", plays: 5420, percentage: 35 },
-    { name: "Snake", plays: 4280, percentage: 28 },
-    { name: "Memory Game", plays: 2890, percentage: 19 },
-    { name: "Tic Tac Toe", plays: 2780, percentage: 18 },
-  ]
+  const [gamesPlayed, setGamesPlayed] = useState([])
+  const [hourlyActivity, setHourlyActivity] = useState([])
+  const [selectedGame, setSelectedGame] = useState("all")
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadDashboardData()
+  }, [])
+
+  useEffect(() => {
+    loadHourlyActivity(selectedGame === "all" ? null : selectedGame)
+  }, [selectedGame])
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true)
+      const gamesResponse = await adminService.getGamesPlayed()
+      if (gamesResponse?.data) {
+        setGamesPlayed(gamesResponse.data)
+      }
+      await loadHourlyActivity(null)
+    } catch (err) {
+      console.error("Error loading dashboard data:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadHourlyActivity = async (gameId) => {
+    try {
+      const response = await adminService.getHourlyActivity(gameId)
+      if (response?.data) {
+        setHourlyActivity(response.data)
+      }
+    } catch (err) {
+      console.error("Error loading hourly activity:", err)
+    }
+  }
+
+  const getMaxCount = () => {
+    const max = Math.max(...hourlyActivity.map(h => h.count), 1)
+    return max
+  }
 
   return (
     <div className="min-h-screen">
@@ -43,11 +82,6 @@ export default function Dashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold">{stat.value}</div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                      <TrendingUp className={`h-3 w-3 ${stat.trend === "up" ? "text-green-500" : ""}`} />
-                      <span className={stat.trend === "up" ? "text-green-500" : ""}>{stat.change}</span>
-                      <span>so với tháng trước</span>
-                    </div>
                   </CardContent>
                 </Card>
               )
@@ -62,22 +96,30 @@ export default function Dashboard() {
                 <CardDescription>Thống kê lượt chơi theo game</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {popularGames.map((game) => (
-                    <div key={game.name} className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{game.name}</span>
-                        <span className="text-muted-foreground">{game.plays} lượt</span>
-                      </div>
-                      <div className="h-2 rounded-full bg-muted overflow-hidden">
-                        <div
-                          className="h-full bg-primary rounded-full transition-all"
-                          style={{ width: `${game.percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {loading ? (
+                  <div className="text-center text-muted-foreground py-8">Đang tải...</div>
+                ) : (
+                  <div className="space-y-4">
+                    {gamesPlayed.map((game) => {
+                      const maxPlays = Math.max(...gamesPlayed.map(g => Number(g.plays)), 1)
+                      const percentage = (Number(game.plays) / maxPlays) * 100
+                      return (
+                        <div key={game.id} className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium">{game.name}</span>
+                            <span className="text-muted-foreground">{game.plays} lượt</span>
+                          </div>
+                          <div className="h-2 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full bg-primary rounded-full transition-all"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -89,29 +131,40 @@ export default function Dashboard() {
                     <CardTitle>Hoạt động theo giờ</CardTitle>
                     <CardDescription>Thời điểm chơi trong ngày</CardDescription>
                   </div>
-                  <Select defaultValue="caro">
-                    <SelectTrigger className="w-[140px]">
+                  <Select value={selectedGame} onValueChange={setSelectedGame}>
+                    <SelectTrigger className="w-[160px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="caro">Caro</SelectItem>
-                      <SelectItem value="snake">Snake</SelectItem>
-                      <SelectItem value="memory">Memory</SelectItem>
+                      <SelectItem value="all">Tất cả game</SelectItem>
+                      {gamesPlayed.map((game) => (
+                        <SelectItem key={game.id} value={String(game.id)}>
+                          {game.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="h-[240px] flex items-end justify-between gap-2">
-                  {[20, 35, 45, 60, 80, 95, 75, 85, 90, 70, 50, 40].map((height, i) => (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                      <div
-                        className="w-full bg-primary/20 hover:bg-primary/40 rounded-t transition-all cursor-pointer"
-                        style={{ height: `${height}%` }}
-                      />
-                      <span className="text-xs text-muted-foreground">{i * 2}h</span>
-                    </div>
-                  ))}
+                <div className="h-[240px] flex items-end justify-between gap-1">
+                  {hourlyActivity.map((data) => {
+                    const maxCount = getMaxCount()
+                    const height = maxCount > 0 ? (data.count / maxCount) * 100 : 0
+                    return (
+                      <div key={data.hour} className="flex-1 flex flex-col items-center gap-2">
+                        <div
+                          className="w-full bg-primary/20 hover:bg-primary/40 rounded-t transition-all cursor-pointer relative group"
+                          style={{ height: `${Math.max(height, 2)}%` }}
+                        >
+                          <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            {data.count} lượt
+                          </div>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{data.hour}h</span>
+                      </div>
+                    )
+                  })}
                 </div>
               </CardContent>
             </Card>
