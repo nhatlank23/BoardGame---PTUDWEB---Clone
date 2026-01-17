@@ -31,34 +31,6 @@ export function GameStatsCard({
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3">
-
-          {/* Score Box */}
-          <div className="bg-slate-950/50 p-3 rounded-xl border border-white/5 flex flex-col items-center justify-center gap-1 shadow-inner relative overflow-hidden group">
-            <div className="absolute inset-0 bg-yellow-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="flex items-center gap-1.5 text-yellow-500/80 mb-1">
-              <Trophy size={14} />
-              <span className="text-[10px] font-bold uppercase tracking-wider">{statLabel}</span>
-            </div>
-            <div className="text-3xl font-black text-white font-mono tracking-tighter drop-shadow-md">
-              {(statValue ?? score).toString().padStart(4, '0')}
-            </div>
-          </div>
-
-          {/* Time / Status Box (Placeholder for now since Logic handled elsewhere or generic) */}
-          <div className="bg-slate-950/50 p-3 rounded-xl border border-white/5 flex flex-col items-center justify-center gap-1 shadow-inner group">
-            <div className="flex items-center gap-1.5 text-emerald-500/80 mb-1">
-              <Target size={14} />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Status</span>
-            </div>
-            <div className="text-xs font-bold text-emerald-100 bg-emerald-500/20 px-2 py-1 rounded-md border border-emerald-500/20">
-              {status}
-            </div>
-          </div>
-
-        </div>
-
       </div>
     </Card>
   );

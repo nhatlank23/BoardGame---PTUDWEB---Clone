@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Trophy, Frown, Zap, Clock, Target, User, Cpu } from "lucide-react";
+import { Loader2, Trophy, Frown, Zap, Clock, Target, User, Cpu, Save, Download, Lightbulb } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { gameService } from "@/services/gameService";
@@ -15,29 +15,41 @@ const COLOR_CLASSES = {
     yellow: "bg-amber-400 shadow-amber-400/50",
     purple: "bg-violet-500 shadow-violet-500/50",
 };
-const TARGET_SCORE = 1000;
-const GAME_TIME = 120; // seconds
-const AI_MOVE_INTERVAL = 15000; // 15 seconds
+const TARGET_SCORE = 3000;
+const GAME_TIME = 120;
+const AI_MOVE_INTERVAL = 3000;
 
 export default function Match3Game() {
     const navigate = useNavigate();
     const { toast } = useToast();
 
+    // --- STATE ---
     const [loading, setLoading] = useState(true);
     const [config, setConfig] = useState(null);
+    const [gameId, setGameId] = useState(null);
+
     const [board, setBoard] = useState([]);
     const [cursorPos, setCursorPos] = useState({ row: 0, col: 0 });
     const [selectedPos, setSelectedPos] = useState(null);
     const [playerScore, setPlayerScore] = useState(0);
     const [computerScore, setComputerScore] = useState(0);
     const [timeLeft, setTimeLeft] = useState(GAME_TIME);
-    const [gameStatus, setGameStatus] = useState("playing"); // playing, win, lose
+    const [elapsedTime, setElapsedTime] = useState(0);
     const [isProcessing, setIsProcessing] = useState(false);
     const [comboMultiplier, setComboMultiplier] = useState(1);
     const [flashingCells, setFlashingCells] = useState([]);
     const [invalidSwap, setInvalidSwap] = useState(false);
+    const [hintsUsed, setHintsUsed] = useState(0);
+
+    // Game state flags
+    const [selectedTimeOption, setSelectedTimeOption] = useState(0);
+    const [gameStarted, setGameStarted] = useState(false);
+    const [gameStatus, setGameStatus] = useState("playing"); // playing, win, lose
+    const [isSaving, setIsSaving] = useState(false);
+    const [isLoadingSession, setIsLoadingSession] = useState(false);
 
     const timerRef = useRef();
+    const elapsedRef = useRef();
     const aiTimerRef = useRef();
 
     // --- 1. FETCH CONFIG ---
@@ -48,12 +60,15 @@ export default function Match3Game() {
                 const response = await gameService.getGameBySlug("match-3");
                 if (response.status === "success" && response.data?.config) {
                     setConfig(response.data.config);
+                    setGameId(response.data.id);
+                    const times = response.data.config.times || [1, 2, 3];
+                    setTimeLeft(times[0] * 60);
                 } else {
-                    setConfig({ targetScore: TARGET_SCORE, gameTime: GAME_TIME });
+                    setConfig({ targetScore: TARGET_SCORE, times: [1, 2, 3] });
                 }
             } catch (error) {
                 console.error("Failed to fetch match-3 config:", error);
-                setConfig({ targetScore: TARGET_SCORE, gameTime: GAME_TIME });
+                setConfig({ targetScore: TARGET_SCORE, times: [1, 2, 3] });
             } finally {
                 setLoading(false);
             }
@@ -61,10 +76,9 @@ export default function Match3Game() {
         fetchConfig();
     }, []);
 
-    // --- HELPER: Generate random color ---
+    // --- HELPERS ---
     const getRandomColor = () => COLORS[Math.floor(Math.random() * COLORS.length)];
 
-    // --- HELPER: Create initial board ---
     const createBoard = useCallback(() => {
         const newBoard = [];
         for (let row = 0; row < GRID_SIZE; row++) {
@@ -84,11 +98,9 @@ export default function Match3Game() {
         return newBoard;
     }, []);
 
-    // --- HELPER: Find all matches on the board ---
     const findMatches = useCallback((boardState) => {
         const matches = new Set();
 
-        // Check horizontal matches
         for (let row = 0; row < GRID_SIZE; row++) {
             for (let col = 0; col < GRID_SIZE - 2; col++) {
                 const color = boardState[row][col];
@@ -100,7 +112,6 @@ export default function Match3Game() {
             }
         }
 
-        // Check vertical matches
         for (let col = 0; col < GRID_SIZE; col++) {
             for (let row = 0; row < GRID_SIZE - 2; row++) {
                 const color = boardState[row][col];
@@ -118,7 +129,6 @@ export default function Match3Game() {
         });
     }, []);
 
-    // --- HELPER: Apply gravity and fill ---
     const applyGravity = useCallback((boardState) => {
         const newBoard = boardState.map(row => [...row]);
 
@@ -131,7 +141,6 @@ export default function Match3Game() {
                     writeRow--;
                 }
             }
-            // Fill empty cells at top
             for (let row = writeRow; row >= 0; row--) {
                 newBoard[row][col] = getRandomColor();
             }
@@ -140,7 +149,6 @@ export default function Match3Game() {
         return newBoard;
     }, []);
 
-    // --- PROCESS MATCHES (with cascade) ---
     const processMatches = useCallback(async (boardState, isPlayerMove = true, multiplier = 1) => {
         let currentBoard = boardState.map(row => [...row]);
         let totalScore = 0;
@@ -150,26 +158,21 @@ export default function Match3Game() {
             const matches = findMatches(currentBoard);
             if (matches.length === 0) break;
 
-            // Flash matched cells
             setFlashingCells(matches);
             await new Promise(r => setTimeout(r, 200));
             setFlashingCells([]);
 
-            // Calculate score
             const matchScore = matches.length * 10 * currentMultiplier;
             totalScore += matchScore;
 
-            // Clear matched cells
             matches.forEach(({ row, col }) => {
                 currentBoard[row][col] = null;
             });
 
-            // Apply gravity
             await new Promise(r => setTimeout(r, 100));
             currentBoard = applyGravity(currentBoard);
             setBoard([...currentBoard]);
 
-            // Increase multiplier for combos
             currentMultiplier++;
             setComboMultiplier(currentMultiplier);
             await new Promise(r => setTimeout(r, 150));
@@ -188,40 +191,44 @@ export default function Match3Game() {
         return { board: currentBoard, score: totalScore };
     }, [findMatches, applyGravity]);
 
-    // --- INITIALIZE GAME ---
+    // --- INIT GAME ---
     const initGame = useCallback(async () => {
         setIsProcessing(true);
         let newBoard = createBoard();
         setBoard(newBoard);
 
-        // Clear any initial matches
         await new Promise(r => setTimeout(r, 300));
         const result = await processMatches(newBoard, false, 1);
         setBoard(result.board);
 
         setPlayerScore(0);
         setComputerScore(0);
-        setTimeLeft(config?.gameTime || GAME_TIME);
-        setGameStatus("playing");
         setCursorPos({ row: 0, col: 0 });
         setSelectedPos(null);
+        setHintsUsed(0);
         setIsProcessing(false);
-    }, [createBoard, processMatches, config]);
+    }, [createBoard, processMatches]);
 
-    useEffect(() => {
-        if (!loading && config) {
-            initGame();
-        }
-    }, [loading, config, initGame]);
+    // --- START GAME ---
+    const startGame = async (timeIndex) => {
+        const times = config?.times || [1, 2, 3];
+        setSelectedTimeOption(timeIndex);
+        setTimeLeft(times[timeIndex] * 60);
+        setElapsedTime(0);
+        setGameStatus("playing");
+        setGameStarted(true);
+        await initGame();
+    };
 
     // --- TIMER ---
     useEffect(() => {
-        if (gameStatus !== "playing" || loading) return;
+        if (!gameStarted || gameStatus !== "playing" || loading) return;
 
         timerRef.current = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
                     clearInterval(timerRef.current);
+                    clearInterval(aiTimerRef.current);
                     if (playerScore >= (config?.targetScore || TARGET_SCORE)) {
                         setGameStatus("win");
                     } else {
@@ -233,17 +240,23 @@ export default function Match3Game() {
             });
         }, 1000);
 
-        return () => clearInterval(timerRef.current);
-    }, [gameStatus, loading, playerScore, config]);
+        elapsedRef.current = setInterval(() => {
+            setElapsedTime(prev => prev + 1);
+        }, 1000);
+
+        return () => {
+            clearInterval(timerRef.current);
+            clearInterval(elapsedRef.current);
+        };
+    }, [gameStarted, gameStatus, loading, playerScore, config]);
 
     // --- AI MOVES ---
     useEffect(() => {
-        if (gameStatus !== "playing" || loading || isProcessing) return;
+        if (!gameStarted || gameStatus !== "playing" || loading || isProcessing) return;
 
         aiTimerRef.current = setInterval(async () => {
             if (isProcessing) return;
 
-            // Find a valid move for AI
             const boardCopy = board.map(row => [...row]);
             let foundMove = false;
 
@@ -255,13 +268,11 @@ export default function Match3Game() {
                     ].filter(n => n.row < GRID_SIZE && n.col < GRID_SIZE);
 
                     for (const neighbor of neighbors) {
-                        // Try swap
                         const temp = boardCopy[row][col];
                         boardCopy[row][col] = boardCopy[neighbor.row][neighbor.col];
                         boardCopy[neighbor.row][neighbor.col] = temp;
 
                         if (findMatches(boardCopy).length > 0) {
-                            // Valid move found, execute it
                             setIsProcessing(true);
                             const newBoard = board.map(r => [...r]);
                             const t = newBoard[row][col];
@@ -282,7 +293,6 @@ export default function Match3Game() {
                             break;
                         }
 
-                        // Undo swap
                         boardCopy[neighbor.row][neighbor.col] = boardCopy[row][col];
                         boardCopy[row][col] = temp;
                     }
@@ -290,28 +300,49 @@ export default function Match3Game() {
             }
 
             if (!foundMove) {
-                // No valid move, give AI some points anyway
                 setComputerScore(prev => prev + 30);
             }
         }, AI_MOVE_INTERVAL);
 
         return () => clearInterval(aiTimerRef.current);
-    }, [gameStatus, loading, isProcessing, board, findMatches, processMatches, toast]);
+    }, [gameStarted, gameStatus, loading, isProcessing, board, findMatches, processMatches, toast]);
 
-    // --- CHECK WIN CONDITION ---
+    // --- CHECK WIN ---
     useEffect(() => {
-        if (gameStatus === "playing" && playerScore >= (config?.targetScore || TARGET_SCORE)) {
+        if (gameStarted && gameStatus === "playing" && playerScore >= (config?.targetScore || TARGET_SCORE)) {
             setGameStatus("win");
             clearInterval(timerRef.current);
             clearInterval(aiTimerRef.current);
         }
-    }, [playerScore, gameStatus, config]);
+    }, [playerScore, gameStatus, gameStarted, config]);
+
+    // --- SAVE HISTORY when game ends ---
+    useEffect(() => {
+        const saveHistory = async () => {
+            if ((gameStatus === "win" || gameStatus === "lose") && gameId && gameStarted) {
+                try {
+                    await gameService.savePlayHistory({
+                        game_id: gameId,
+                        score: playerScore,
+                        duration: elapsedTime
+                    });
+                    toast({
+                        title: "Đã lưu kết quả!",
+                        description: `Điểm: ${playerScore}`,
+                        className: "bg-violet-600 border-none text-white"
+                    });
+                } catch (error) {
+                    console.error("Failed to save history:", error);
+                }
+            }
+        };
+        saveHistory();
+    }, [gameStatus, gameId, playerScore, elapsedTime, gameStarted, toast]);
 
     // --- SWAP LOGIC ---
     const trySwap = useCallback(async (pos1, pos2) => {
         if (isProcessing) return;
 
-        // Check if adjacent
         const isAdjacent =
             (Math.abs(pos1.row - pos2.row) === 1 && pos1.col === pos2.col) ||
             (Math.abs(pos1.col - pos2.col) === 1 && pos1.row === pos2.row);
@@ -325,22 +356,18 @@ export default function Match3Game() {
 
         setIsProcessing(true);
 
-        // Perform swap
         const newBoard = board.map(row => [...row]);
         const temp = newBoard[pos1.row][pos1.col];
         newBoard[pos1.row][pos1.col] = newBoard[pos2.row][pos2.col];
         newBoard[pos2.row][pos2.col] = temp;
 
-        // Check if valid (creates match)
         const matches = findMatches(newBoard);
 
         if (matches.length === 0) {
-            // Invalid swap - animate back
             setBoard(newBoard);
             setInvalidSwap(true);
             await new Promise(r => setTimeout(r, 200));
 
-            // Swap back
             newBoard[pos2.row][pos2.col] = newBoard[pos1.row][pos1.col];
             newBoard[pos1.row][pos1.col] = temp;
             setBoard(newBoard);
@@ -351,7 +378,6 @@ export default function Match3Game() {
             return;
         }
 
-        // Valid swap
         setBoard(newBoard);
         setSelectedPos(null);
         await new Promise(r => setTimeout(r, 100));
@@ -359,40 +385,153 @@ export default function Match3Game() {
         setIsProcessing(false);
     }, [board, findMatches, processMatches, isProcessing]);
 
+    // --- HINT ---
+    const handleHint = useCallback(() => {
+        if (isProcessing) return;
+
+        for (let row = 0; row < GRID_SIZE; row++) {
+            for (let col = 0; col < GRID_SIZE; col++) {
+                const neighbors = [
+                    { row, col: col + 1 },
+                    { row: row + 1, col },
+                ].filter(n => n.row < GRID_SIZE && n.col < GRID_SIZE);
+
+                for (const neighbor of neighbors) {
+                    const testBoard = board.map(r => [...r]);
+                    const t = testBoard[row][col];
+                    testBoard[row][col] = testBoard[neighbor.row][neighbor.col];
+                    testBoard[neighbor.row][neighbor.col] = t;
+
+                    if (findMatches(testBoard).length > 0) {
+                        setCursorPos({ row, col });
+                        setHintsUsed(prev => prev + 1);
+                        setPlayerScore(prev => Math.max(0, prev - 20));
+                        toast({
+                            title: "Gợi ý! (-20 điểm)",
+                            description: `Thử tráo ô (${row + 1}, ${col + 1})`,
+                            className: "bg-yellow-600 border-none text-white"
+                        });
+                        return;
+                    }
+                }
+            }
+        }
+        toast({
+            title: "Không tìm thấy!",
+            description: "Không có nước đi hợp lệ",
+            variant: "destructive"
+        });
+    }, [board, findMatches, isProcessing, toast]);
+
+    // --- SAVE GAME SESSION ---
+    const handleSave = async () => {
+        if (!gameId) return;
+        setIsSaving(true);
+        try {
+            await gameService.saveGameSession({
+                game_id: gameId,
+                matrix_state: JSON.stringify({
+                    board,
+                    playerScore,
+                    computerScore,
+                    hintsUsed
+                }),
+                current_score: playerScore,
+                elapsed_time: elapsedTime
+            });
+            toast({
+                title: "Đã lưu game!",
+                description: "Bạn có thể tiếp tục chơi sau",
+                className: "bg-sky-600 border-none text-white"
+            });
+        } catch (error) {
+            toast({ title: "Lỗi", description: "Không thể lưu game", variant: "destructive" });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // --- LOAD GAME SESSION ---
+    const handleLoad = async () => {
+        if (!gameId) return;
+        setIsLoadingSession(true);
+        try {
+            const response = await gameService.getLastSession(gameId);
+            if (response.status === "success" && response.data) {
+                const session = response.data;
+                const state = JSON.parse(session.matrix_state);
+
+                setBoard(state.board);
+                setPlayerScore(state.playerScore || 0);
+                setComputerScore(state.computerScore || 0);
+                setHintsUsed(state.hintsUsed || 0);
+                setElapsedTime(session.elapsed_time || 0);
+                setGameStarted(true);
+                setGameStatus("playing");
+
+                toast({
+                    title: "Đã load game!",
+                    description: `Điểm hiện tại: ${state.playerScore}`,
+                    className: "bg-teal-600 border-none text-white"
+                });
+            }
+        } catch (error) {
+            toast({ title: "Thông báo", description: "Không tìm thấy game đã lưu", variant: "default" });
+        } finally {
+            setIsLoadingSession(false);
+        }
+    };
+
     // --- CONTROLS ---
     const handleKeyDown = useCallback((e) => {
         if (loading || isProcessing) return;
 
+        // Time selection screen
+        if (!gameStarted) {
+            const times = config?.times || [1, 2, 3];
+            switch (e.key) {
+                case "ArrowLeft":
+                    setSelectedTimeOption(prev => (prev - 1 + times.length) % times.length);
+                    break;
+                case "ArrowRight":
+                    setSelectedTimeOption(prev => (prev + 1) % times.length);
+                    break;
+                case "Enter":
+                    startGame(selectedTimeOption);
+                    break;
+                case "l": case "L":
+                    handleLoad();
+                    break;
+                case "Escape":
+                    navigate("/home");
+                    break;
+            }
+            return;
+        }
+
+        // Game ended
         if (gameStatus !== "playing") {
-            if (e.key === "Enter") initGame();
+            if (e.key === "Enter") {
+                setGameStarted(false);
+                setGameStatus("playing");
+            }
             if (e.key === "Escape") navigate("/home");
             return;
         }
 
+        // During gameplay
         switch (e.key) {
             case "ArrowRight":
-                setCursorPos(prev => ({
-                    row: prev.row,
-                    col: (prev.col + 1) % GRID_SIZE
-                }));
+                setCursorPos(prev => ({ row: prev.row, col: (prev.col + 1) % GRID_SIZE }));
                 break;
             case "ArrowLeft":
-                setCursorPos(prev => ({
-                    row: prev.row,
-                    col: (prev.col - 1 + GRID_SIZE) % GRID_SIZE
-                }));
+                setCursorPos(prev => ({ row: prev.row, col: (prev.col - 1 + GRID_SIZE) % GRID_SIZE }));
                 break;
             case "ArrowDown":
-                setCursorPos(prev => ({
-                    row: (prev.row + 1) % GRID_SIZE,
-                    col: prev.col
-                }));
+                setCursorPos(prev => ({ row: (prev.row + 1) % GRID_SIZE, col: prev.col }));
                 break;
             case "ArrowUp":
-                setCursorPos(prev => ({
-                    row: (prev.row - 1 + GRID_SIZE) % GRID_SIZE,
-                    col: prev.col
-                }));
+                setCursorPos(prev => ({ row: (prev.row - 1 + GRID_SIZE) % GRID_SIZE, col: prev.col }));
                 break;
             case "Enter":
                 if (selectedPos === null) {
@@ -405,50 +544,25 @@ export default function Match3Game() {
                 if (selectedPos) {
                     setSelectedPos(null);
                 } else {
+                    handleSave();
                     navigate("/home");
                 }
                 break;
             case "h": case "H":
-                // Hint: Find a valid move
-                for (let row = 0; row < GRID_SIZE; row++) {
-                    for (let col = 0; col < GRID_SIZE; col++) {
-                        const neighbors = [
-                            { row, col: col + 1 },
-                            { row: row + 1, col },
-                        ].filter(n => n.row < GRID_SIZE && n.col < GRID_SIZE);
-
-                        for (const neighbor of neighbors) {
-                            const testBoard = board.map(r => [...r]);
-                            const t = testBoard[row][col];
-                            testBoard[row][col] = testBoard[neighbor.row][neighbor.col];
-                            testBoard[neighbor.row][neighbor.col] = t;
-
-                            if (findMatches(testBoard).length > 0) {
-                                setCursorPos({ row, col });
-                                toast({
-                                    title: "Gợi ý!",
-                                    description: `Thử tráo ô (${row + 1}, ${col + 1})`,
-                                    className: "bg-yellow-600 border-none text-white"
-                                });
-                                return;
-                            }
-                        }
-                    }
-                }
-                toast({
-                    title: "Không tìm thấy!",
-                    description: "Không có nước đi hợp lệ",
-                    variant: "destructive"
-                });
+                handleHint();
+                break;
+            case "s": case "S":
+                handleSave();
                 break;
         }
-    }, [loading, isProcessing, gameStatus, cursorPos, selectedPos, trySwap, board, findMatches, initGame, navigate, toast]);
+    }, [loading, isProcessing, gameStarted, gameStatus, cursorPos, selectedPos, config, selectedTimeOption, trySwap, handleHint, handleSave, handleLoad, navigate, startGame]);
 
     useEffect(() => {
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [handleKeyDown]);
 
+    // --- LOADING STATE ---
     if (loading) return (
         <div className="flex flex-col items-center justify-center p-20 gap-4">
             <Loader2 className="w-12 h-12 text-violet-500 animate-spin" />
@@ -456,13 +570,70 @@ export default function Match3Game() {
         </div>
     );
 
+    const times = config?.times || [1, 2, 3];
     const targetScore = config?.targetScore || TARGET_SCORE;
 
+    // --- TIME SELECTION SCREEN ---
+    if (!gameStarted) {
+        return (
+            <div className="flex flex-col items-center gap-8 w-full max-w-lg">
+                <div className="text-center">
+                    <h2 className="text-3xl font-black text-white mb-2 tracking-tight flex items-center justify-center gap-3">
+                        <Zap className="w-10 h-10 text-violet-400" />
+                        MATCH 3
+                    </h2>
+                    <p className="text-slate-400 text-sm">Ghép 3 viên kẹo cùng màu để ghi điểm</p>
+                </div>
+
+                <div className="flex gap-4">
+                    {times.map((t, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => setSelectedTimeOption(idx)}
+                            className={cn(
+                                "px-8 py-6 rounded-2xl border-2 transition-all duration-300 flex flex-col items-center gap-2",
+                                selectedTimeOption === idx
+                                    ? "bg-violet-500/20 border-violet-500 scale-110 shadow-lg shadow-violet-500/30"
+                                    : "bg-slate-900/60 border-slate-700 hover:border-slate-500"
+                            )}
+                        >
+                            <Clock className={cn("w-8 h-8", selectedTimeOption === idx ? "text-violet-400" : "text-slate-400")} />
+                            <span className={cn("text-2xl font-black", selectedTimeOption === idx ? "text-violet-400" : "text-slate-300")}>
+                                {t} phút
+                            </span>
+                        </button>
+                    ))}
+                </div>
+
+                <div className="flex gap-4">
+                    <Button
+                        onClick={() => startGame(selectedTimeOption)}
+                        className="bg-violet-600 hover:bg-violet-500 text-white font-bold px-12 py-6 rounded-2xl text-lg"
+                    >
+                        BẮT ĐẦU
+                    </Button>
+                    <Button
+                        onClick={handleLoad}
+                        variant="outline"
+                        className="border-slate-600 text-slate-300 hover:bg-slate-800 px-8 py-6 rounded-2xl"
+                        disabled={isLoadingSession}
+                    >
+                        {isLoadingSession ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5 mr-2" />}
+                        LOAD
+                    </Button>
+                </div>
+
+                <p className="text-slate-600 text-xs font-mono">[←/→] Chọn | [ENTER] Bắt đầu | [L] Load game</p>
+            </div>
+        );
+    }
+
+    // --- MAIN GAME SCREEN ---
     return (
-        <div className="flex flex-col items-center gap-4 w-full max-w-3xl px-4">
+        <div className="flex flex-col items-center gap-3 w-full max-w-5xl h-full px-4 py-2 justify-center">
 
             {/* Score Bars */}
-            <div className="w-full grid grid-cols-2 gap-4">
+            <div className="w-full max-w-2xl grid grid-cols-2 gap-4">
                 <ScoreBar
                     label="PLAYER"
                     score={playerScore}
@@ -479,11 +650,11 @@ export default function Match3Game() {
                 />
             </div>
 
-            {/* Timer & Combo */}
-            <div className="flex items-center gap-6 bg-slate-900/60 px-6 py-2 rounded-full border border-white/10">
-                <div className="flex items-center gap-2 text-amber-400">
+            {/* Timer & Controls */}
+            <div className="flex items-center gap-4 bg-slate-900/60 px-6 py-2 rounded-full border border-white/10">
+                <div className={cn("flex items-center gap-2", timeLeft < 30 ? "text-rose-400 animate-pulse" : "text-amber-400")}>
                     <Clock className="w-4 h-4" />
-                    <span className="font-mono font-bold text-lg">{String(timeLeft).padStart(3, '0')}s</span>
+                    <span className="font-mono font-bold text-lg">{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
                 </div>
                 <div className="w-px h-6 bg-white/10" />
                 <div className="flex items-center gap-2 text-violet-400">
@@ -499,6 +670,17 @@ export default function Match3Game() {
                         </div>
                     </>
                 )}
+                <div className="w-px h-6 bg-white/10" />
+                <div className="flex items-center gap-1">
+                    <Button size="sm" variant="ghost" onClick={handleHint} disabled={isProcessing}
+                        className="h-7 w-7 p-0 text-amber-400 hover:bg-amber-500/20">
+                        <Lightbulb className="w-3 h-3" />
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={handleSave} disabled={isSaving}
+                        className="h-7 w-7 p-0 text-sky-400 hover:bg-sky-500/20">
+                        {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                    </Button>
+                </div>
             </div>
 
             {/* Game Board */}
@@ -518,7 +700,7 @@ export default function Match3Game() {
                     )}
                     style={{
                         gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
-                        width: 'min(85vw, 450px)',
+                        width: 'min(90vw, 65vh)',
                         aspectRatio: '1/1'
                     }}
                 >
@@ -531,8 +713,16 @@ export default function Match3Game() {
                             return (
                                 <div
                                     key={`${rowIdx}-${colIdx}`}
+                                    onClick={() => {
+                                        if (isProcessing) return;
+                                        if (selectedPos === null) {
+                                            setSelectedPos({ row: rowIdx, col: colIdx });
+                                        } else {
+                                            trySwap(selectedPos, { row: rowIdx, col: colIdx });
+                                        }
+                                    }}
                                     className={cn(
-                                        "rounded-md transition-all duration-150 relative",
+                                        "rounded-md transition-all duration-150 relative cursor-pointer",
                                         color && COLOR_CLASSES[color],
                                         color && "shadow-lg",
                                         isCursor && "ring-2 ring-white ring-offset-2 ring-offset-slate-950 scale-110 z-20",
@@ -555,9 +745,9 @@ export default function Match3Game() {
                                 <h2 className="text-4xl font-black text-white mb-2 tracking-tighter bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">
                                     VICTORY!
                                 </h2>
-                                <p className="text-emerald-300 text-sm mb-6 font-mono">SCORE: {playerScore}</p>
+                                <p className="text-emerald-300 text-sm mb-6 font-mono">SCORE: {playerScore} | TIME: {elapsedTime}s</p>
                                 <Button
-                                    onClick={initGame}
+                                    onClick={() => { setGameStarted(false); setGameStatus("playing"); }}
                                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-2xl"
                                 >
                                     PLAY AGAIN
@@ -576,7 +766,7 @@ export default function Match3Game() {
                                 <h2 className="text-4xl font-black text-white mb-2 tracking-tighter">TIME'S UP!</h2>
                                 <p className="text-rose-300 text-sm mb-6 font-mono">SCORE: {playerScore} / {targetScore}</p>
                                 <Button
-                                    onClick={initGame}
+                                    onClick={() => { setGameStarted(false); setGameStatus("playing"); }}
                                     className="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-4 rounded-2xl"
                                 >
                                     TRY AGAIN
@@ -585,17 +775,6 @@ export default function Match3Game() {
                         </div>
                     )}
                 </div>
-            </div>
-
-            {/* Controls Guide */}
-            <div className="flex flex-wrap items-center justify-center gap-3 bg-slate-900/50 p-3 rounded-2xl border border-white/5 text-[10px]">
-                <ControlHint keys={["←", "→", "↑", "↓"]} label="MOVE" />
-                <div className="w-px h-6 bg-white/10" />
-                <ControlHint keys={["ENT"]} label="SELECT/SWAP" />
-                <div className="w-px h-6 bg-white/10" />
-                <ControlHint keys={["H"]} label="HINT" />
-                <div className="w-px h-6 bg-white/10" />
-                <ControlHint keys={["ESC"]} label="CANCEL/BACK" />
             </div>
         </div>
     );
@@ -623,21 +802,6 @@ function ScoreBar({ label, score, target, icon, color }) {
                     style={{ width: `${percentage}%` }}
                 />
             </div>
-        </div>
-    );
-}
-
-function ControlHint({ keys, label }) {
-    return (
-        <div className="flex flex-col items-center gap-1">
-            <div className="flex gap-1">
-                {keys.map(k => (
-                    <kbd key={k} className="px-1.5 py-0.5 bg-slate-950 border border-white/10 rounded text-[9px] font-bold text-slate-300">
-                        {k}
-                    </kbd>
-                ))}
-            </div>
-            <span className="text-[8px] font-black text-slate-500 tracking-wider uppercase">{label}</span>
         </div>
     );
 }
