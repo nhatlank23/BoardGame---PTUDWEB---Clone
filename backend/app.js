@@ -13,7 +13,7 @@ app.use(
   cors({
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
     credentials: true,
-  })
+  }),
 );
 // api-docs - xem ở trang: http://localhost:3000/api-docs
 const swaggerAuth = (req, res, next) => {
@@ -40,8 +40,7 @@ const swaggerOptions = {
           type: "apiKey",
           in: "header",
           name: "x-api-key",
-          description:
-            "Nhập mã: api_9f3c2b7a8d4e6a1f5c0e9b2d7a4c8e6f1b0d9a3e5c7f2a8b4d6c0e1",
+          description: "Nhập mã: api_9f3c2b7a8d4e6a1f5c0e9b2d7a4c8e6f1b0d9a3e5c7f2a8b4d6c0e1",
         },
         bearerAuth: {
           type: "http",
@@ -90,12 +89,7 @@ const swaggerOptions = {
   apis: ["./routes/*.js"],
 };
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
-app.use(
-  "/api-docs",
-  swaggerAuth,
-  swaggerUi.serve,
-  swaggerUi.setup(swaggerDocs)
-);
+app.use("/api-docs", swaggerAuth, swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 app.get("/", (req, res) => {
   res.json({

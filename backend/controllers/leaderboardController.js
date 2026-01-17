@@ -17,9 +17,14 @@ module.exports = {
         return res.status(400).json({ status: "error", message: "Game ID is required" });
       }
 
-      const leaderboards = await leaderboardsModel.getTopGamersByGameId(gameId);
+      let leaderboards;
+      if (gameId === "all") {
+        leaderboards = await leaderboardsModel.getTopGamers();
+      } else {
+        leaderboards = await leaderboardsModel.getTopGamersByGameId(gameId);
+      }
 
-      return res.json({ data: leaderboards });
+      return res.json({ status: "success", data: leaderboards });
     } catch (err) {
       console.error("getTopGamersByGameId error:", err);
       return res.status(500).json({ status: "error", message: "Internal Server Error" });
