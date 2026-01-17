@@ -489,4 +489,260 @@ module.exports = {
         .json({ status: "error", message: "Internal Server Error" });
     }
   },
+
+  // GET /api/users/stats - Lấy thống kê game của user hiện tại
+  getUserStats: async (req, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res
+          .status(401)
+          .json({ status: "error", message: "Unauthorized" });
+      }
+
+      // Lấy thống kê từ play_history
+      const stats = await db("play_history")
+        .where("play_history.user_id", userId)
+        .join("games", "games.id", "play_history.game_id")
+        .select(
+          "games.name as game_name",
+          db.raw("COUNT(*) as played"),
+          db.raw("MAX(play_history.score) as record"),
+          db.raw("AVG(play_history.score)::INTEGER as avg_score"),
+          db.raw(
+            "SUM(CASE WHEN play_history.score = 1 THEN 1 ELSE 0 END) as wins"
+          ),
+          db.raw(
+            "ROUND(SUM(CASE WHEN play_history.score = 1 THEN 1 ELSE 0 END)::NUMERIC / COUNT(*) * 100, 1) as win_rate"
+          )
+        )
+        .groupBy("games.id", "games.name");
+
+      return res.json({ data: stats });
+    } catch (err) {
+      console.error("getUserStats error:", err);
+      return res
+        .status(500)
+        .json({ status: "error", message: "Internal Server Error" });
+    }
+  },
+
+  // GET /api/users/history - Lấy lịch sử đấu gần đây
+  getUserHistory: async (req, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res
+          .status(401)
+          .json({ status: "error", message: "Unauthorized" });
+      }
+
+      const limit = parseInt(req.query.limit) || 20;
+
+      const history = await db("play_history")
+        .where("play_history.user_id", userId)
+        .join("games", "games.id", "play_history.game_id")
+        .select(
+          "play_history.id",
+          "games.name as game_name",
+          "play_history.score",
+          "play_history.duration",
+          "play_history.played_at"
+        )
+        .orderBy("play_history.played_at", "desc")
+        .limit(limit);
+
+      return res.json({ data: history });
+    } catch (err) {
+      console.error("getUserHistory error:", err);
+      return res
+        .status(500)
+        .json({ status: "error", message: "Internal Server Error" });
+    }
+  },
+
+  // PUT /api/users/profile - Cập nhật profile (username, avatar_url)
+  updateProfile: async (req, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res
+          .status(401)
+          .json({ status: "error", message: "Unauthorized" });
+      }
+
+      const { username, avatar_url } = req.body;
+
+      // Validate input
+      if (!username && !avatar_url) {
+        return res.status(400).json({
+          status: "error",
+          message: "Username hoặc avatar_url là bắt buộc",
+        });
+      }
+
+      const updateData = {};
+
+      // Kiểm tra username mới nếu có
+      if (username) {
+        if (username.length < 3) {
+          return res.status(400).json({
+            status: "error",
+            message: "Username phải có ít nhất 3 ký tự",
+          });
+        }
+
+        // Kiểm tra username đã tồn tại chưa
+        const existingUser = await db("users")
+          .where("username", username)
+          .whereNot("id", userId)
+          .first();
+
+        if (existingUser) {
+          return res.status(409).json({
+            status: "error",
+            message: "Username đã được sử dụng",
+          });
+        }
+
+        updateData.username = username;
+      }
+
+      if (avatar_url) {
+        updateData.avatar_url = avatar_url;
+      }
+
+      // Cập nhật user
+      const [updatedUser] = await db("users")
+        .where("id", userId)
+        .update({
+          ...updateData,
+          updated_at: db.fn.now(),
+        })
+        .returning([
+          "id",
+          "username",
+          "email",
+          "avatar_url",
+          "role",
+          "dark_mode",
+        ]);
+
+      return res.json({
+        status: "success",
+        message: "Cập nhật profile thành công",
+        data: updatedUser,
+      });
+    } catch (err) {
+      console.error("updateProfile error:", err);
+      return res
+        .status(500)
+        .json({ status: "error", message: "Internal Server Error" });
+    }
+  },
+
+  // POST /api/users/avatar - Upload avatar
+  uploadAvatar: async (req, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({
+          status: "error",
+          message: "Unauthorized",
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          status: "error",
+          message: "No file uploaded",
+        });
+      }
+
+      const { supabase } = require("../configs/supabase");
+      const { v4: uuidv4 } = require("uuid");
+      const path = require("path");
+
+      if (!supabase) {
+        return res.status(503).json({
+          status: "error",
+          message: "Storage service not configured",
+        });
+      }
+
+      // Get current user to delete old avatar
+      const user = await db("users").where("id", userId).first();
+
+      // Generate unique filename
+      const fileExt = path.extname(req.file.originalname);
+      const fileName = `${userId}/${uuidv4()}${fileExt}`;
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from("avatar")
+        .upload(fileName, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: false,
+        });
+
+      if (error) {
+        console.error("Supabase upload error:", error);
+        return res.status(500).json({
+          status: "error",
+          message: `Upload failed: ${error.message}`,
+        });
+      }
+
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from("avatar")
+        .getPublicUrl(data.path);
+
+      const avatarUrl = publicUrlData.publicUrl;
+
+      // Update user avatar_url
+      const [updatedUser] = await db("users")
+        .where("id", userId)
+        .update({
+          avatar_url: avatarUrl,
+          updated_at: db.fn.now(),
+        })
+        .returning([
+          "id",
+          "username",
+          "email",
+          "avatar_url",
+          "role",
+          "dark_mode",
+        ]);
+
+      // Delete old avatar if exists
+      if (user.avatar_url && user.avatar_url.includes("supabase.co")) {
+        try {
+          const oldPath = user.avatar_url.split("/avatar/")[1];
+          if (oldPath) {
+            await supabase.storage.from("avatar").remove([oldPath]);
+          }
+        } catch (deleteError) {
+          console.error("Error deleting old avatar:", deleteError);
+          // Continue anyway
+        }
+      }
+
+      return res.json({
+        status: "success",
+        message: "Upload avatar thành công",
+        data: {
+          avatar_url: avatarUrl,
+          user: updatedUser,
+        },
+      });
+    } catch (err) {
+      console.error("uploadAvatar error:", err);
+      return res.status(500).json({
+        status: "error",
+        message: err.message || "Internal Server Error",
+      });
+    }
+  },
 };
