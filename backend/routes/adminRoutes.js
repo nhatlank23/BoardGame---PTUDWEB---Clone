@@ -13,4 +13,8 @@ router.get("/users", AdminController.getAllUsers);
 // Ban a user (admin only)
 router.patch("/users/:id/ban", AdminController.toggleBanUser);
 
+// Stats endpoints
+router.get("/stats/games-played", AdminController.getGamesPlayed);
+router.get("/stats/hourly-activity", AdminController.getHourlyActivity);
+
 module.exports = router;
