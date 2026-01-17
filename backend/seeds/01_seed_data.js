@@ -11,6 +11,7 @@ exports.seed = async function (knex) {
   await knex("leaderboards").del();
   await knex("messages").del();
   await knex("friendships").del();
+  await knex("game_logs").del();
   await knex("play_history").del();
   await knex("game_sessions").del();
   await knex("games").del();
@@ -115,4 +116,31 @@ exports.seed = async function (knex) {
     { user_id: userIds[4], game_id: gameIds[3], current_score: 2, matrix_state: JSON.stringify({}) },
     { user_id: userIds[0], game_id: gameIds[0], current_score: 0, matrix_state: JSON.stringify({}) },
   ]);
+
+  // 10. SEED GAME LOGS (activity logs for hourly chart)
+  const gameLogs = [];
+  const today = new Date('2026-01-17');
+  
+  // Generate logs for different hours throughout the day
+  for (let hour = 0; hour < 24; hour++) {
+    const logsInHour = Math.floor(Math.random() * 15) + 5; // 5-20 logs per hour
+    for (let i = 0; i < logsInHour; i++) {
+      const minute = Math.floor(Math.random() * 60);
+      const playedAt = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hour, minute);
+      const randomUserId = userIds[Math.floor(Math.random() * userIds.length)];
+      const randomGameId = gameIds[Math.floor(Math.random() * gameIds.length)];
+      const randomScore = Math.floor(Math.random() * 1000) + 10;
+      const randomDuration = Math.floor(Math.random() * 300) + 30;
+      
+      gameLogs.push({
+        user_id: randomUserId,
+        game_id: randomGameId,
+        played_at: playedAt,
+        score: randomScore,
+        duration: randomDuration
+      });
+    }
+  }
+  
+  await knex("game_logs").insert(gameLogs);
 };
