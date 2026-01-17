@@ -36,15 +36,17 @@ exports.seed = async function (knex) {
   ]);
 
   // 2. SEED GAMES (5 games)
-  const games = await knex("games").insert([
-    { slug: "caro-5", name: "Caro 5 in a Row", config: JSON.stringify({ rows: 15, cols: 15, win: 5 }) },
-    { slug: "snake", name: "Classic Snake", config: JSON.stringify({ speed: 100 }) },
-    { slug: "tetris", name: "Retro Tetris", config: JSON.stringify({ level: 1 }) },
-    { slug: "minesweeper", name: "Minesweeper", config: JSON.stringify({ bombs: 10 }) },
-    { slug: "match-3", name: "Match 3 Candy", config: JSON.stringify({ moves: 20 }) },
-  ]).returning("id");
+  const games = await knex("games")
+    .insert([
+      { slug: "caro-5", name: "Caro 5 in a Row", config: JSON.stringify({ rows: 15, cols: 15, win: 5 }) },
+      { slug: "snake", name: "Classic Snake", config: JSON.stringify({ speed: 100 }) },
+      { slug: "tetris", name: "Retro Tetris", config: JSON.stringify({ level: 1 }) },
+      { slug: "minesweeper", name: "Minesweeper", config: JSON.stringify({ bombs: 10 }) },
+      { slug: "match-3", name: "Match 3 Candy", config: JSON.stringify({ moves: 20 }) },
+    ])
+    .returning("id");
 
-  const gameIds = games.map(g => g.id);
+  const gameIds = games.map((g) => g.id);
 
   // 3. SEED FRIENDSHIPS (5 quan hệ)
   await knex("friendships").insert([
@@ -71,32 +73,35 @@ exports.seed = async function (knex) {
     { user_id: userIds[3], game_id: gameIds[2], high_score: 2500 },
     { user_id: userIds[4], game_id: gameIds[3], high_score: 10 },
     { user_id: userIds[1], game_id: gameIds[4], high_score: 5000 },
+    { user_id: userIds[1], game_id: gameIds[4], high_score: 7000 },
   ]);
 
   // 6. SEED MESSAGES (thêm tin nhắn để test chat)
   await knex("messages").insert([
     // conversation between userIds[1] and userIds[2]
-    { sender_id: userIds[1], receiver_id: userIds[2], content: "Chào ông, làm ván Caro không?", created_at: new Date('2026-01-10T09:00:00Z') },
-    { sender_id: userIds[2], receiver_id: userIds[1], content: "Ok luôn, đợi tí tui tạo phòng.", created_at: new Date('2026-01-10T09:01:00Z') },
-    { sender_id: userIds[1], receiver_id: userIds[2], content: "Sẵn sàng, mấy giờ chơi?", created_at: new Date('2026-01-10T09:02:00Z') },
-    { sender_id: userIds[2], receiver_id: userIds[1], content: "10 phút nữa nhé.", created_at: new Date('2026-01-10T09:03:00Z') },
-    { sender_id: userIds[1], receiver_id: userIds[2], content: "Ok, đang chuẩn bị.", created_at: new Date('2026-01-10T09:04:00Z') },
-    { sender_id: userIds[2], receiver_id: userIds[1], content: "Tui vừa tạo phòng: ROOM123", created_at: new Date('2026-01-10T09:05:00Z') },
+    { sender_id: userIds[1], receiver_id: userIds[2], content: "Chào ông, làm ván Caro không?", created_at: new Date("2026-01-10T09:00:00Z") },
+    { sender_id: userIds[2], receiver_id: userIds[1], content: "Ok luôn, đợi tí tui tạo phòng.", created_at: new Date("2026-01-10T09:01:00Z") },
+    { sender_id: userIds[1], receiver_id: userIds[2], content: "Sẵn sàng, mấy giờ chơi?", created_at: new Date("2026-01-10T09:02:00Z") },
+    { sender_id: userIds[2], receiver_id: userIds[1], content: "10 phút nữa nhé.", created_at: new Date("2026-01-10T09:03:00Z") },
+    { sender_id: userIds[1], receiver_id: userIds[2], content: "Ok, đang chuẩn bị.", created_at: new Date("2026-01-10T09:04:00Z") },
+    { sender_id: userIds[2], receiver_id: userIds[1], content: "Tui vừa tạo phòng: ROOM123", created_at: new Date("2026-01-10T09:05:00Z") },
 
     // other messages
-    { sender_id: userIds[1], receiver_id: userIds[0], content: "Admin ơi, game Snake bị lag.", created_at: new Date('2026-01-09T08:00:00Z') },
-    { sender_id: userIds[3], receiver_id: userIds[4], content: "Điểm cao thế!", created_at: new Date('2026-01-08T12:00:00Z') },
-    { sender_id: userIds[4], receiver_id: userIds[3], content: "Hên thôi ông ơi.", created_at: new Date('2026-01-08T12:01:00Z') },
+    { sender_id: userIds[1], receiver_id: userIds[0], content: "Admin ơi, game Snake bị lag.", created_at: new Date("2026-01-09T08:00:00Z") },
+    { sender_id: userIds[3], receiver_id: userIds[4], content: "Điểm cao thế!", created_at: new Date("2026-01-08T12:00:00Z") },
+    { sender_id: userIds[4], receiver_id: userIds[3], content: "Hên thôi ông ơi.", created_at: new Date("2026-01-08T12:01:00Z") },
   ]);
 
   // 7. SEED ACHIEVEMENTS (5 danh hiệu)
-  const achievementIds = await knex("achievements").insert([
-    { name: "Newbie", description: "Chơi ván game đầu tiên", icon_url: "badge_01.png" },
-    { name: "Winner", description: "Thắng 10 ván Caro", icon_url: "badge_02.png" },
-    { name: "Snake Master", description: "Đạt 100 điểm game Snake", icon_url: "badge_03.png" },
-    { name: "Social Star", description: "Có 5 người bạn", icon_url: "badge_04.png" },
-    { name: "Pro Player", description: "Lọt top 1 bảng xếp hạng", icon_url: "badge_05.png" },
-  ]).returning("id");
+  const achievementIds = await knex("achievements")
+    .insert([
+      { name: "Newbie", description: "Chơi ván game đầu tiên", icon_url: "badge_01.png" },
+      { name: "Winner", description: "Thắng 10 ván Caro", icon_url: "badge_02.png" },
+      { name: "Snake Master", description: "Đạt 100 điểm game Snake", icon_url: "badge_03.png" },
+      { name: "Social Star", description: "Có 5 người bạn", icon_url: "badge_04.png" },
+      { name: "Pro Player", description: "Lọt top 1 bảng xếp hạng", icon_url: "badge_05.png" },
+    ])
+    .returning("id");
 
   // 8. SEED USER ACHIEVEMENTS
   await knex("user_achievements").insert([
@@ -109,8 +114,16 @@ exports.seed = async function (knex) {
 
   // 9. SEED GAME SESSIONS (5 session đang chơi dở)
   await knex("game_sessions").insert([
-    { user_id: userIds[1], game_id: gameIds[0], current_score: 10, matrix_state: JSON.stringify([[0,1],[1,0]]) },
-    { user_id: userIds[2], game_id: gameIds[1], current_score: 5, matrix_state: JSON.stringify({snake: [1,2,3]}) },
+    {
+      user_id: userIds[1],
+      game_id: gameIds[0],
+      current_score: 10,
+      matrix_state: JSON.stringify([
+        [0, 1],
+        [1, 0],
+      ]),
+    },
+    { user_id: userIds[2], game_id: gameIds[1], current_score: 5, matrix_state: JSON.stringify({ snake: [1, 2, 3] }) },
     { user_id: userIds[3], game_id: gameIds[2], current_score: 100, matrix_state: JSON.stringify({}) },
     { user_id: userIds[4], game_id: gameIds[3], current_score: 2, matrix_state: JSON.stringify({}) },
     { user_id: userIds[0], game_id: gameIds[0], current_score: 0, matrix_state: JSON.stringify({}) },
