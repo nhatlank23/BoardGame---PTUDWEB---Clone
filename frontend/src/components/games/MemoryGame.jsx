@@ -1,18 +1,60 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { HelpCircle, Brain, Loader2, Clock, Save, Download, Trophy, Frown, Target, Zap, User, Cpu, Lightbulb } from "lucide-react";
+import { HelpCircle, Brain, Loader2, Clock, Trophy, Frown, Target, Zap, User, Cpu, ChevronLeft, ChevronRight, CornerDownLeft, ArrowLeft, Lightbulb, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { gameService } from "@/services/gameService";
 import { cn } from "@/lib/utils";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const ICONS = ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼"];
+
+const GAME_INSTRUCTIONS = [
+    {
+        title: "Thể lệ đối kháng",
+        content: "Bạn và Máy (AI) sẽ luân phiên nhau lật các thẻ bài trên bàn. Mục tiêu là tìm được nhiều cặp thẻ trùng khớp hơn đối thủ trước khi toàn bộ bàn cờ được lật hết."
+    },
+    {
+        title: "Thao tác lật thẻ",
+        content: "Sử dụng CHUỘT trái để lật thẻ. Trong mỗi lượt, bạn được lật tối đa 2 thẻ. Hãy ghi nhớ vị trí và hình ảnh (icon) của chúng."
+    },
+    {
+        title: "Quy tắc khớp thẻ",
+        content: "Nếu 2 thẻ trùng icon: Bạn nhận +100 điểm, cặp thẻ đó sẽ luôn mở và bạn được TIẾP TỤC lật thêm một lượt nữa."
+    },
+    {
+        title: "Lượt của đối thủ (AI)",
+        content: "Nếu 2 thẻ không trùng: Thẻ sẽ úp lại sau 1 giây và lượt chơi chuyển sang Máy. Hãy chú ý các thẻ Máy lật để ghi nhớ vị trí cho lượt sau của mình."
+    },
+    {
+        title: "Quyền trợ giúp (Hint)",
+        content: "Nhấn nút HINT để nhờ AI tìm giúp 1 cặp thẻ trùng nhau. Hai thẻ này sẽ nhấp nháy trong 2 giây. Tuy nhiên, bạn sẽ bị trừ 50 điểm phí trợ giúp."
+    },
+    {
+        title: "Điều kiện chiến thắng",
+        content: "Trò chơi kết thúc khi không còn thẻ úp. Bạn thắng nếu tổng số cặp thẻ lật được nhiều hơn Máy. Kết thúc nhanh sẽ nhận thêm Bonus thời gian!"
+    }
+];
+const CELL_COLORS = {
+    hidden: "bg-slate-700 border-slate-600 hover:bg-slate-600",
+    flipped: "bg-indigo-600 border-indigo-400",
+    matched: "bg-emerald-600/40 border-emerald-500",
+    hinted: "border-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.6)] animate-pulse",
+};
 
 export default function MemoryGame() {
     const navigate = useNavigate();
     const { toast } = useToast();
 
-    // --- STATE ---
     const [loading, setLoading] = useState(true);
     const [config, setConfig] = useState(null);
     const [gameId, setGameId] = useState(null);
@@ -20,34 +62,30 @@ export default function MemoryGame() {
     const [cards, setCards] = useState([]);
     const [flippedIndices, setFlippedIndices] = useState([]);
     const [matchedIndices, setMatchedIndices] = useState([]);
-    const [cursorPos, setCursorPos] = useState(0);
     const [isChecking, setIsChecking] = useState(false);
     const [seenCards, setSeenCards] = useState(new Set());
-
-    // Turn-based: true = Player, false = Computer
     const [isPlayerTurn, setIsPlayerTurn] = useState(true);
 
-    // Timer & Score
     const [selectedTimeOption, setSelectedTimeOption] = useState(0);
-    const [timeLeft, setTimeLeft] = useState(120);
+    const [timeLeft, setTimeLeft] = useState(300);
+    const [totalGameTime, setTotalGameTime] = useState(300);
     const [elapsedTime, setElapsedTime] = useState(0);
     const [playerScore, setPlayerScore] = useState(0);
     const [playerPairs, setPlayerPairs] = useState(0);
     const [computerPairs, setComputerPairs] = useState(0);
     const [comboCount, setComboCount] = useState(0);
-    const [hintPenalty, setHintPenalty] = useState(0);
 
-    // Game state flags
     const [gameStarted, setGameStarted] = useState(false);
     const [gameEnded, setGameEnded] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isLoadingSession, setIsLoadingSession] = useState(false);
     const [hintIndices, setHintIndices] = useState([]);
+    const [showInstructions, setShowInstructions] = useState(false);
+    const [showExitDialog, setShowExitDialog] = useState(false);
 
     const timerRef = useRef();
     const elapsedRef = useRef();
 
-    // --- 1. FETCH CONFIG ---
     useEffect(() => {
         const fetchConfig = async () => {
             try {
@@ -56,12 +94,13 @@ export default function MemoryGame() {
                 if (response.status === "success") {
                     setConfig(response.data.config);
                     setGameId(response.data.id);
-                    const times = response.data.config?.times || [1, 2, 3];
+                    const times = response.data.config?.times || [5, 10, 20];
                     setTimeLeft(times[0] * 60);
+                    setTotalGameTime(times[0] * 60);
                 }
             } catch (error) {
                 toast({ title: "Lỗi", description: "Không tải được cấu hình game", variant: "destructive" });
-                setConfig({ times: [1, 2, 3] });
+                setConfig({ times: [5, 10, 20] });
             } finally {
                 setLoading(false);
             }
@@ -69,7 +108,6 @@ export default function MemoryGame() {
         fetchConfig();
     }, [toast]);
 
-    // --- INIT GAME ---
     const initGame = useCallback(() => {
         const pairs = [...ICONS, ...ICONS];
         for (let i = pairs.length - 1; i > 0; i--) {
@@ -80,27 +118,23 @@ export default function MemoryGame() {
         setFlippedIndices([]);
         setMatchedIndices([]);
         setSeenCards(new Set());
-        setCursorPos(0);
         setIsChecking(false);
         setIsPlayerTurn(true);
         setPlayerPairs(0);
         setComputerPairs(0);
         setComboCount(0);
-        setHintPenalty(0);
         setHintIndices([]);
+        setPlayerScore(0);
     }, []);
 
-    // --- CALCULATE FINAL SCORE ---
     const calculateFinalScore = useCallback(() => {
         let score = 0;
         let breakdown = [];
 
-        // Base score: pairs x 100
         const pairScore = playerPairs * 100;
         score += pairScore;
         breakdown.push(`+${pairScore} (${playerPairs} cặp)`);
 
-        // Win bonus: +500 if player has more pairs
         if (playerPairs > computerPairs) {
             score += 500;
             breakdown.push("+500 (Thắng)");
@@ -110,26 +144,19 @@ export default function MemoryGame() {
             breakdown.push("+0 (Thua)");
         }
 
-        // Hint penalty
-        if (hintPenalty > 0) {
-            score -= hintPenalty;
-            breakdown.push(`-${hintPenalty} (Hint)`);
-        }
-
-        // Time penalty
-        const timePenalty = elapsedTime;
+        const timePenalty = Math.floor(elapsedTime / 10);
         score -= timePenalty;
         breakdown.push(`-${timePenalty} (Thời gian)`);
 
         return { score: Math.max(0, score), breakdown };
-    }, [playerPairs, computerPairs, hintPenalty, elapsedTime]);
+    }, [playerPairs, computerPairs, elapsedTime]);
 
-    // --- HANDLE FLIP ---
-    const handleFlip = useCallback((idx) => {
+    const handleCardClick = useCallback((idx) => {
         if (!gameStarted || gameEnded || isChecking || !isPlayerTurn) return;
         if (flippedIndices.includes(idx) || matchedIndices.includes(idx)) return;
 
-        // Check if card was already seen (penalty)
+        setHintIndices([]);
+
         if (seenCards.has(idx) && !matchedIndices.includes(idx)) {
             setPlayerScore(prev => Math.max(0, prev - 10));
             toast({
@@ -139,12 +166,10 @@ export default function MemoryGame() {
             });
         }
 
-        // Mark as seen
         setSeenCards(prev => new Set([...prev, idx]));
         setFlippedIndices(prev => [...prev, idx]);
     }, [gameStarted, gameEnded, isChecking, isPlayerTurn, flippedIndices, matchedIndices, seenCards, toast]);
 
-    // --- MATCH CHECK LOGIC ---
     useEffect(() => {
         if (flippedIndices.length !== 2) return;
 
@@ -153,11 +178,9 @@ export default function MemoryGame() {
 
         const timer = setTimeout(() => {
             if (cards[first] === cards[second]) {
-                // Match found!
                 setMatchedIndices(prev => [...prev, first, second]);
 
                 if (isPlayerTurn) {
-                    // Calculate combo bonus
                     const baseScore = 100;
                     const comboBonus = comboCount * 50;
                     const totalPoints = baseScore + comboBonus;
@@ -171,10 +194,7 @@ export default function MemoryGame() {
                         description: comboBonus > 0 ? `Combo x${comboCount + 1}!` : "Tìm được cặp!",
                         className: "bg-emerald-600 border-none text-white"
                     });
-
-                    // Player continues
                 } else {
-                    // Computer matched
                     setComputerPairs(prev => prev + 1);
                     toast({
                         title: "Máy tìm được cặp!",
@@ -186,15 +206,12 @@ export default function MemoryGame() {
                 setFlippedIndices([]);
                 setIsChecking(false);
             } else {
-                // No match
-                if (isPlayerTurn) {
-                    setComboCount(0); // Reset combo
-                }
+                if (isPlayerTurn) setComboCount(0);
 
                 setTimeout(() => {
                     setFlippedIndices([]);
                     setIsChecking(false);
-                    setIsPlayerTurn(prev => !prev); // Switch turn
+                    setIsPlayerTurn(prev => !prev);
                 }, 500);
             }
         }, 800);
@@ -202,7 +219,6 @@ export default function MemoryGame() {
         return () => clearTimeout(timer);
     }, [flippedIndices, cards, isPlayerTurn, comboCount, computerPairs, toast]);
 
-    // --- COMPUTER AI ---
     useEffect(() => {
         if (!isPlayerTurn && gameStarted && !gameEnded && !isChecking && matchedIndices.length < cards.length) {
             const timer = setTimeout(() => {
@@ -211,7 +227,6 @@ export default function MemoryGame() {
                     .filter(i => !matchedIndices.includes(i) && !flippedIndices.includes(i));
 
                 if (available.length >= 2) {
-                    // Random pick 2 cards
                     const shuffled = [...available].sort(() => Math.random() - 0.5);
                     const [first, second] = shuffled.slice(0, 2);
 
@@ -229,14 +244,12 @@ export default function MemoryGame() {
         }
     }, [isPlayerTurn, gameStarted, gameEnded, isChecking, matchedIndices, cards, flippedIndices]);
 
-    // --- GAME END CHECK ---
     useEffect(() => {
         if (gameStarted && cards.length > 0 && matchedIndices.length === cards.length) {
             setGameEnded(true);
         }
     }, [gameStarted, matchedIndices, cards]);
 
-    // --- TIMER ---
     useEffect(() => {
         if (!gameStarted || gameEnded) return;
 
@@ -261,7 +274,6 @@ export default function MemoryGame() {
         };
     }, [gameStarted, gameEnded]);
 
-    // --- SAVE HISTORY when game ends ---
     useEffect(() => {
         const saveHistory = async () => {
             if (gameEnded && gameId) {
@@ -280,11 +292,168 @@ export default function MemoryGame() {
         saveHistory();
     }, [gameEnded, gameId, elapsedTime, calculateFinalScore]);
 
-    // --- HINT ---
-    const handleHint = () => {
-        if (!gameStarted || gameEnded || !isPlayerTurn || isChecking) return;
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (loading) return;
+            const times = config?.times || [5, 10, 20];
 
-        // Find an unmatched pair
+            if (!gameStarted) {
+                switch (e.key) {
+                    case "ArrowLeft":
+                        e.preventDefault();
+                        setSelectedTimeOption(prev => Math.max(0, prev - 1));
+                        break;
+                    case "ArrowRight":
+                        e.preventDefault();
+                        setSelectedTimeOption(prev => Math.min(times.length - 1, prev + 1));
+                        break;
+                    case "Enter":
+                        e.preventDefault();
+                        startGame(selectedTimeOption);
+                        break;
+                    case "h":
+                    case "H":
+                        e.preventDefault();
+                        setShowInstructions(true);
+                        break;
+                    case "Escape":
+                    case "Backspace":
+                        e.preventDefault();
+                        navigate("/home");
+                        break;
+                }
+                return;
+            }
+
+            if (!gameEnded) {
+                switch (e.key) {
+                    case "h":
+                    case "H":
+                        e.preventDefault();
+                        // Hint inline - find matching pair
+                        if (isPlayerTurn && !isChecking) {
+                            const unmatched = cards
+                                .map((icon, i) => ({ icon, i }))
+                                .filter(({ i }) => !matchedIndices.includes(i));
+                            const iconGroups = {};
+                            unmatched.forEach(({ icon, i }) => {
+                                if (!iconGroups[icon]) iconGroups[icon] = [];
+                                iconGroups[icon].push(i);
+                            });
+                            const pair = Object.values(iconGroups).find(arr => arr.length >= 2);
+                            if (pair) {
+                                setHintIndices(pair.slice(0, 2));
+                                setPlayerScore(prev => Math.max(0, prev - 50));
+                                setTimeout(() => setHintIndices([]), 3000);
+                            }
+                        }
+                        break;
+                    case "Escape":
+                    case "Backspace":
+                        e.preventDefault();
+                        // Pause and show exit dialog
+                        clearInterval(timerRef.current);
+                        clearInterval(elapsedRef.current);
+                        setShowExitDialog(true);
+                        break;
+                }
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [loading, gameStarted, gameEnded, selectedTimeOption, config, navigate, isPlayerTurn, isChecking, cards, matchedIndices]);
+
+    const handleBackFromConfig = () => {
+        if (playerScore > 0) {
+            setShowExitDialog(true);
+        } else {
+            navigate("/home");
+        }
+    };
+
+    const handleExitWithSave = async () => {
+        await handleSave();
+        setShowExitDialog(false);
+        navigate("/home");
+    };
+
+    const handleExitWithoutSave = () => {
+        setShowExitDialog(false);
+        navigate("/home");
+    };
+
+    const handleLeft = () => {
+        if (!gameStarted) setSelectedTimeOption(prev => Math.max(0, prev - 1));
+    };
+
+    const handleRight = () => {
+        if (!gameStarted) {
+            const times = config?.times || [5, 10, 20];
+            setSelectedTimeOption(prev => Math.min(times.length - 1, prev + 1));
+        }
+    };
+
+    const handleEnter = () => {
+        if (!gameStarted) startGame(selectedTimeOption);
+    };
+
+    const handleBack = () => {
+        if (gameStarted && !gameEnded) {
+            // Pause the game and show exit dialog
+            clearInterval(timerRef.current);
+            clearInterval(elapsedRef.current);
+            setShowExitDialog(true);
+        } else if (!gameStarted) {
+            handleBackFromConfig();
+        }
+    };
+
+    // Handle exit with save from gameplay
+    const handleExitGameWithSave = async () => {
+        await handleSave();
+        setShowExitDialog(false);
+        setGameStarted(false);
+        setGameEnded(false);
+    };
+
+    // Handle exit without save from gameplay
+    const handleExitGameWithoutSave = () => {
+        setShowExitDialog(false);
+        setGameStarted(false);
+        setGameEnded(false);
+    };
+
+    // Handle cancel exit (resume game)
+    const handleCancelExit = () => {
+        setShowExitDialog(false);
+        // Resume timers if game was in progress
+        if (gameStarted && !gameEnded) {
+            timerRef.current = setInterval(() => {
+                setTimeLeft(prev => {
+                    if (prev <= 1) {
+                        clearInterval(timerRef.current);
+                        setGameEnded(true);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+
+            elapsedRef.current = setInterval(() => {
+                setElapsedTime(prev => prev + 1);
+            }, 1000);
+        }
+    };
+
+    const handleHint = () => {
+        if (!gameStarted) {
+            setShowInstructions(true);
+            return;
+        }
+
+        if (!isPlayerTurn || isChecking || gameEnded) return;
+
         const unmatched = cards
             .map((icon, i) => ({ icon, i }))
             .filter(({ i }) => !matchedIndices.includes(i));
@@ -298,20 +467,18 @@ export default function MemoryGame() {
         const pair = Object.values(iconGroups).find(arr => arr.length >= 2);
         if (pair) {
             setHintIndices(pair.slice(0, 2));
-            setHintPenalty(prev => prev + 50);
             setPlayerScore(prev => Math.max(0, prev - 50));
 
             toast({
-                title: "-50 điểm (Hint)",
+                title: "💡 -50 điểm (Hint)",
                 description: "Cặp trùng đang nhấp nháy!",
                 className: "bg-amber-600 border-none text-white"
             });
 
-            setTimeout(() => setHintIndices([]), 2000);
+            setTimeout(() => setHintIndices([]), 3000);
         }
     };
 
-    // --- SAVE GAME SESSION ---
     const handleSave = async () => {
         if (!gameId) return;
         setIsSaving(true);
@@ -325,13 +492,15 @@ export default function MemoryGame() {
                     computerPairs,
                     isPlayerTurn,
                     comboCount,
-                    seenCards: [...seenCards]
+                    seenCards: [...seenCards],
+                    timeLeft,
+                    totalGameTime
                 }),
                 current_score: playerScore,
                 elapsed_time: elapsedTime
             });
             toast({
-                title: "Đã lưu game!",
+                title: "💾 Đã lưu game!",
                 description: "Bạn có thể tiếp tục chơi sau",
                 className: "bg-sky-600 border-none text-white"
             });
@@ -342,7 +511,6 @@ export default function MemoryGame() {
         }
     };
 
-    // --- LOAD GAME SESSION ---
     const handleLoad = async () => {
         if (!gameId) return;
         setIsLoadingSession(true);
@@ -360,14 +528,19 @@ export default function MemoryGame() {
                 setComboCount(state.comboCount || 0);
                 setSeenCards(new Set(state.seenCards || []));
                 setPlayerScore(session.current_score || 0);
+
+                const savedTimeLeft = state.timeLeft || (state.totalGameTime - session.elapsed_time) || 300;
+                setTimeLeft(savedTimeLeft);
+                setTotalGameTime(state.totalGameTime || savedTimeLeft);
                 setElapsedTime(session.elapsed_time || 0);
+
                 setFlippedIndices([]);
                 setGameStarted(true);
                 setGameEnded(false);
 
                 toast({
-                    title: "Đã load game!",
-                    description: `Điểm hiện tại: ${session.current_score}`,
+                    title: "📥 Đã load game!",
+                    description: `Điểm: ${session.current_score} | Thời gian còn: ${Math.floor(savedTimeLeft / 60)}:${String(savedTimeLeft % 60).padStart(2, '0')}`,
                     className: "bg-teal-600 border-none text-white"
                 });
             }
@@ -378,93 +551,18 @@ export default function MemoryGame() {
         }
     };
 
-    // --- START GAME ---
     const startGame = (timeIndex) => {
-        const times = config?.times || [1, 2, 3];
+        const times = config?.times || [5, 10, 20];
         setSelectedTimeOption(timeIndex);
-        setTimeLeft(times[timeIndex] * 60);
+        const gameTime = times[timeIndex] * 60;
+        setTimeLeft(gameTime);
+        setTotalGameTime(gameTime);
         setElapsedTime(0);
-        setPlayerScore(0);
         initGame();
         setGameStarted(true);
         setGameEnded(false);
     };
 
-    // --- CONTROLS ---
-    const handleKeyDown = useCallback((e) => {
-        if (loading) return;
-
-        // Time selection screen
-        if (!gameStarted && !gameEnded) {
-            const times = config?.times || [1, 2, 3];
-            switch (e.key) {
-                case "ArrowLeft":
-                    setSelectedTimeOption(prev => (prev - 1 + times.length) % times.length);
-                    break;
-                case "ArrowRight":
-                    setSelectedTimeOption(prev => (prev + 1) % times.length);
-                    break;
-                case "Enter":
-                    startGame(selectedTimeOption);
-                    break;
-                case "l": case "L":
-                    handleLoad();
-                    break;
-                case "Escape":
-                    navigate("/home");
-                    break;
-            }
-            return;
-        }
-
-        // Game ended screen
-        if (gameEnded) {
-            if (e.key === "Enter") {
-                setGameStarted(false);
-                setGameEnded(false);
-            }
-            if (e.key === "Escape") navigate("/home");
-            return;
-        }
-
-        // During gameplay
-        if (!isPlayerTurn || isChecking) return;
-
-        switch (e.key) {
-            case "ArrowRight":
-                setCursorPos(prev => (prev + 1) % 16);
-                break;
-            case "ArrowLeft":
-                setCursorPos(prev => (prev - 1 + 16) % 16);
-                break;
-            case "ArrowDown":
-                setCursorPos(prev => (prev + 4) % 16);
-                break;
-            case "ArrowUp":
-                setCursorPos(prev => (prev - 4 + 16) % 16);
-                break;
-            case "Enter":
-                handleFlip(cursorPos);
-                break;
-            case "h": case "H":
-                handleHint();
-                break;
-            case "s": case "S":
-                handleSave();
-                break;
-            case "Escape":
-                handleSave();
-                navigate("/home");
-                break;
-        }
-    }, [loading, gameStarted, gameEnded, isPlayerTurn, isChecking, cursorPos, handleFlip, handleHint, handleSave, handleLoad, navigate, config, selectedTimeOption, startGame]);
-
-    useEffect(() => {
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [handleKeyDown]);
-
-    // --- LOADING STATE ---
     if (loading) return (
         <div className="flex flex-col h-full items-center justify-center gap-4">
             <Loader2 className="animate-spin text-purple-500 w-12 h-12" />
@@ -472,18 +570,17 @@ export default function MemoryGame() {
         </div>
     );
 
-    const times = config?.times || [1, 2, 3];
+    const times = config?.times || [5, 10, 20];
 
-    // --- TIME SELECTION SCREEN ---
     if (!gameStarted && !gameEnded) {
         return (
-            <div className="flex flex-col items-center gap-8 w-full max-w-lg">
+            <div className="flex flex-col items-center gap-6 w-full max-w-2xl">
                 <div className="text-center">
                     <h2 className="text-3xl font-black text-white mb-2 tracking-tight flex items-center justify-center gap-3">
                         <Brain className="w-10 h-10 text-purple-400" />
                         MEMORY GAME
                     </h2>
-                    <p className="text-slate-400 text-sm">Chọn thời gian chơi</p>
+                    <p className="text-slate-400 text-sm">Click vào thẻ để lật và tìm cặp</p>
                 </div>
 
                 <div className="flex gap-4">
@@ -506,30 +603,56 @@ export default function MemoryGame() {
                     ))}
                 </div>
 
-                <div className="flex gap-4">
-                    <Button
-                        onClick={() => startGame(selectedTimeOption)}
-                        className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-12 py-6 rounded-2xl text-lg"
-                    >
-                        BẮT ĐẦU
-                    </Button>
-                    <Button
-                        onClick={handleLoad}
-                        variant="outline"
-                        className="border-slate-600 text-slate-300 hover:bg-slate-800 px-8 py-6 rounded-2xl"
-                        disabled={isLoadingSession}
-                    >
-                        {isLoadingSession ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5 mr-2" />}
-                        LOAD
-                    </Button>
-                </div>
 
-                <p className="text-slate-600 text-xs font-mono">[←/→] Chọn | [ENTER] Bắt đầu | [L] Load game</p>
+                <Button onClick={handleLoad} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800 px-8 py-4 rounded-xl" disabled={isLoadingSession}>
+                    {isLoadingSession ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+                    Tiếp tục game đã lưu
+                </Button>
+
+                <AlertDialog open={showInstructions} onOpenChange={setShowInstructions}>
+                    <AlertDialogContent className="bg-slate-900 border-slate-700">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-white flex items-center gap-2">
+                                <HelpCircle className="w-5 h-5 text-yellow-400" />
+                                Hướng dẫn chơi Memory
+                            </AlertDialogTitle>
+                            <AlertDialogDescription asChild>
+                                <div className="space-y-4 text-slate-300 mt-4">
+                                    {GAME_INSTRUCTIONS.map((item, idx) => (
+                                        <div key={idx} className="border-l-2 border-blue-500 pl-3">
+                                            <h4 className="text-white font-bold text-sm uppercase mb-1">
+                                                {idx + 1}. {item.title}
+                                            </h4>
+                                            <p className="text-xs leading-relaxed text-slate-400">
+                                                {item.content}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogAction className="bg-purple-600 hover:bg-purple-500">Đã hiểu</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+
+                <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+                    <AlertDialogContent className="bg-slate-900 border-slate-700">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-white">Lưu game trước khi thoát?</AlertDialogTitle>
+                            <AlertDialogDescription>Bạn có muốn lưu tiến trình game hiện tại không?</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel onClick={handleExitWithoutSave} className="bg-slate-800 text-white hover:bg-slate-700">Không lưu</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleExitWithSave} className="bg-emerald-600 hover:bg-emerald-500">Lưu và thoát</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         );
     }
 
-    // --- GAME END SCREEN ---
     if (gameEnded) {
         const { score, breakdown } = calculateFinalScore();
         const playerWon = playerPairs > computerPairs;
@@ -540,32 +663,21 @@ export default function MemoryGame() {
                     "p-10 rounded-3xl border-2 flex flex-col items-center gap-6",
                     playerWon ? "bg-emerald-900/30 border-emerald-500/50" : "bg-rose-900/30 border-rose-500/50"
                 )}>
-                    <div className={cn(
-                        "w-24 h-24 rounded-full flex items-center justify-center",
-                        playerWon ? "bg-emerald-500/20" : "bg-rose-500/20"
-                    )}>
+                    <div className={cn("w-24 h-24 rounded-full flex items-center justify-center", playerWon ? "bg-emerald-500/20" : "bg-rose-500/20")}>
                         {playerWon ? <Trophy className="w-12 h-12 text-emerald-400" /> : <Frown className="w-12 h-12 text-rose-400" />}
                     </div>
-
                     <div className="text-center">
                         <h2 className="text-4xl font-black text-white mb-2">
                             {playerWon ? "BẠN THẮNG!" : playerPairs === computerPairs ? "HÒA!" : "MÁY THẮNG!"}
                         </h2>
                         <p className="text-slate-400">Bạn: {playerPairs} cặp | Máy: {computerPairs} cặp</p>
                     </div>
-
                     <div className="bg-slate-950/50 px-8 py-4 rounded-2xl text-center">
                         <span className="text-slate-400 text-sm">TỔNG ĐIỂM</span>
                         <p className="text-5xl font-black text-white">{score}</p>
-                        <div className="text-xs text-slate-500 mt-2">
-                            {breakdown.join(" | ")}
-                        </div>
+                        <div className="text-xs text-slate-500 mt-2">{breakdown.join(" | ")}</div>
                     </div>
-
-                    <Button
-                        onClick={() => { setGameStarted(false); setGameEnded(false); }}
-                        className="bg-violet-600 hover:bg-violet-500 text-white font-bold px-12 py-6 rounded-2xl text-lg"
-                    >
+                    <Button onClick={() => { setGameStarted(false); setGameEnded(false); }} className="bg-violet-600 hover:bg-violet-500 text-white font-bold px-12 py-6 rounded-2xl text-lg">
                         CHƠI LẠI
                     </Button>
                 </div>
@@ -573,47 +685,25 @@ export default function MemoryGame() {
         );
     }
 
-    // --- MAIN GAME SCREEN ---
     return (
         <div className="flex flex-col items-center gap-3 w-full max-w-3xl h-full px-4 py-2 justify-center">
 
-            {/* Stats Bar */}
-            <div className="grid grid-cols-5 w-full gap-2">
+            <div className="grid grid-cols-4 w-full gap-2">
                 <StatBox label="ĐIỂM" value={playerScore} color="text-emerald-400" icon={<Target className="w-3 h-3" />} />
                 <StatBox label="BẠN" value={`${playerPairs} cặp`} color="text-purple-400" icon={<User className="w-3 h-3" />} />
                 <StatBox label="MÁY" value={`${computerPairs} cặp`} color="text-blue-400" icon={<Cpu className="w-3 h-3" />} />
-                <StatBox
-                    label="THỜI GIAN"
-                    value={`${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`}
-                    color={timeLeft < 30 ? "text-rose-400 animate-pulse" : "text-amber-400"}
-                    icon={<Clock className="w-3 h-3" />}
-                />
-                <div className="bg-slate-900/60 border border-white/5 p-2 rounded-xl flex items-center justify-center gap-1">
-                    <Button size="sm" variant="ghost" onClick={handleHint} disabled={!isPlayerTurn || isChecking}
-                        className="h-7 w-7 p-0 text-amber-400 hover:bg-amber-500/20">
-                        <Lightbulb className="w-3 h-3" />
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={handleSave} disabled={isSaving}
-                        className="h-7 w-7 p-0 text-sky-400 hover:bg-sky-500/20">
-                        {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={handleLoad} disabled={isLoadingSession}
-                        className="h-7 w-7 p-0 text-teal-400 hover:bg-teal-500/20">
-                        {isLoadingSession ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-                    </Button>
-                </div>
+                <StatBox label="THỜI GIAN" value={`${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`} color={timeLeft < 30 ? "text-rose-400 animate-pulse" : "text-amber-400"} icon={<Clock className="w-3 h-3" />} />
             </div>
 
-            {/* Turn Indicator */}
             <div className="flex items-center gap-4 bg-slate-900/50 px-6 py-2 rounded-full border border-white/5">
                 <div className={cn("flex items-center gap-2", isPlayerTurn ? "text-purple-400" : "text-slate-500")}>
                     <User className="w-4 h-4" />
-                    <span className="font-bold text-sm">LƯỢT CỦA BẠN</span>
+                    <span className="font-bold text-sm">LƯỢT BẠN</span>
                 </div>
                 <span className="text-slate-600">|</span>
                 <div className={cn("flex items-center gap-2", !isPlayerTurn ? "text-blue-400" : "text-slate-500")}>
                     <Cpu className="w-4 h-4" />
-                    <span className="font-bold text-sm">LƯỢT CỦA MÁY</span>
+                    <span className="font-bold text-sm">LƯỢT MÁY</span>
                 </div>
                 {!isPlayerTurn && <Loader2 className="w-4 h-4 animate-spin text-blue-400" />}
                 {comboCount > 0 && isPlayerTurn && (
@@ -623,46 +713,36 @@ export default function MemoryGame() {
                 )}
             </div>
 
-            {/* Game Board */}
+
+
             <div className="relative">
                 <div className="absolute -inset-4 bg-purple-500/10 rounded-3xl blur-2xl" />
                 <div
-                    id="memory-grid"
-                    className={cn(
-                        "relative grid grid-cols-4 gap-3 bg-slate-900 p-4 rounded-2xl shadow-2xl border-4 border-slate-700 transition-all",
-                        !isPlayerTurn && "opacity-80"
-                    )}
+                    className={cn("relative grid grid-cols-4 gap-3 bg-slate-900 p-4 rounded-2xl shadow-2xl border-4 border-slate-700 transition-all", !isPlayerTurn && "opacity-80")}
                     style={{ width: 'min(90vw, 65vh)', aspectRatio: '1/1' }}
                 >
                     {cards.map((icon, i) => {
                         const isFlipped = flippedIndices.includes(i);
                         const isMatched = matchedIndices.includes(i);
                         const isRevealed = isFlipped || isMatched;
-                        const isCursor = i === cursorPos && isPlayerTurn;
                         const isHinted = hintIndices.includes(i);
 
                         return (
                             <div
                                 key={i}
-                                onClick={() => isPlayerTurn && handleFlip(i)}
+                                onClick={() => handleCardClick(i)}
                                 className={cn(
                                     "rounded-xl flex items-center justify-center text-3xl sm:text-4xl transition-all duration-300 cursor-pointer border-2 relative aspect-square",
-                                    isCursor && !isChecking && "border-yellow-400 scale-105 z-10 shadow-[0_0_20px_rgba(250,204,21,0.4)]",
-                                    !isCursor && "border-slate-600",
-                                    isMatched && "bg-emerald-600/20 border-emerald-500",
-                                    isFlipped && !isMatched && "bg-indigo-600 border-indigo-400",
-                                    !isRevealed && "bg-slate-700 shadow-inner",
-                                    isHinted && "animate-pulse border-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.6)]",
+                                    isMatched && CELL_COLORS.matched,
+                                    isFlipped && !isMatched && CELL_COLORS.flipped,
+                                    !isRevealed && CELL_COLORS.hidden,
+                                    isHinted && CELL_COLORS.hinted,
                                     !isPlayerTurn && "pointer-events-none"
                                 )}
                             >
-                                <span className={cn(
-                                    "transition-opacity duration-300 pointer-events-none",
-                                    isRevealed ? "opacity-100" : "opacity-0"
-                                )}>
+                                <span className={cn("transition-opacity duration-300 pointer-events-none", isRevealed ? "opacity-100" : "opacity-0")}>
                                     {icon}
                                 </span>
-
                                 {!isRevealed && (
                                     <HelpCircle className="w-1/3 h-1/3 text-slate-600 absolute opacity-50" />
                                 )}
@@ -671,6 +751,40 @@ export default function MemoryGame() {
                     })}
                 </div>
             </div>
+
+            {/* Save Game Button */}
+            <Button
+                onClick={handleSave}
+                disabled={isSaving || !gameStarted || gameEnded}
+                className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all"
+            >
+                {isSaving ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                    <Save className="w-5 h-5" />
+                )}
+                {isSaving ? "Đang lưu..." : "Lưu Game"}
+            </Button>
+
+            <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+                <AlertDialogContent className="bg-slate-900 border-slate-700">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-white">Tạm dừng game</AlertDialogTitle>
+                        <AlertDialogDescription>Bạn muốn làm gì tiếp theo?</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
+                        <Button onClick={handleCancelExit} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800">
+                            Tiếp tục chơi
+                        </Button>
+                        <AlertDialogCancel onClick={handleExitGameWithoutSave} className="bg-slate-800 text-white hover:bg-slate-700">
+                            Thoát không lưu
+                        </AlertDialogCancel>
+                        <AlertDialogAction onClick={handleExitGameWithSave} className="bg-emerald-600 hover:bg-emerald-500">
+                            Lưu & thoát
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

@@ -99,12 +99,6 @@ export function GameController({
 
                 </div>
 
-                {/* Footer Hint */}
-                <div className="text-center">
-                    <span className="text-[10px] font-mono text-slate-500 bg-slate-950/30 px-3 py-1 rounded-full border border-white/5">
-                        KEYBOARD / MOUSE SUPPORTED
-                    </span>
-                </div>
             </div>
         </Card>
     );

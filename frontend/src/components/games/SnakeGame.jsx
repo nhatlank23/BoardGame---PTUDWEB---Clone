@@ -1,10 +1,20 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, RefreshCw, Trophy, Frown, Target, Zap, Info, Clock, Save, Download, User, Cpu } from "lucide-react";
+import { Loader2, RefreshCw, Trophy, Frown, Target, Clock, User, HelpCircle, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { gameService } from "@/services/gameService";
 import { cn } from "@/lib/utils";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const GRID_SIZE = 15;
 const INITIAL_PLAYER_SNAKE = [
@@ -18,6 +28,51 @@ const INITIAL_CPU_SNAKE = [
     { x: 13, y: 7 },
 ];
 const INITIAL_DIRECTION = { x: 1, y: 0 };
+const DEFAULT_SPEED = 350; // ms per move - slow enough to be playable
+
+// Color definitions for cells
+// Color definitions with enhanced smooth effects
+const CELL_COLORS = {
+    empty: "bg-slate-900/40 border border-white/5",
+    food: "bg-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.8)] rounded-full",
+    playerHead: "bg-gradient-to-br from-emerald-300 via-emerald-400 to-emerald-500 shadow-[0_0_15px_rgba(52,211,153,0.8)] scale-[1.15] rounded-xl z-20",
+    playerHeadHint: "bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 shadow-[0_0_15px_rgba(250,204,21,0.8)] scale-[1.15] rounded-xl z-20",
+    playerBody: "bg-gradient-to-b from-emerald-500 to-emerald-600 rounded-lg shadow-md border-t border-white/20",
+    cpuHead: "bg-gradient-to-br from-blue-300 via-blue-400 to-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)] scale-[1.15] rounded-xl z-20",
+    cpuBody: "bg-gradient-to-b from-blue-500 to-blue-600 rounded-lg shadow-md border-t border-white/20",
+};
+
+// Game instructions
+const GAME_INSTRUCTIONS = [
+    {
+        title: "Mục tiêu trò chơi",
+        content: "Sống sót và ăn nhiều mồi càng tốt để ghi điểm. Tồn tại cho đến khi hết giờ là bạn chiến thắng!"
+    },
+    {
+        title: "Cách điều khiển bằng chuột",
+        content: "Sử dụng CHUỘT trái để điều hướng rắn. CLICK vào bất kỳ ô nào trên bàn cờ để rắn di chuyển về hướng đó."
+    },
+    {
+        title: "Quy tắc ăn mồi",
+        content: "Ăn mồi đỏ: +50 điểm và rắn dài thêm 1 ô. Máy sẽ tự động tạo mồi mới tại vị trí ngẫu nhiên sau khi bạn ăn."
+    },
+    {
+        title: "Rắn đối thủ (CPU)",
+        content: "Có một con rắn máy (màu xanh dương) cũng đang cạnh tranh mồi với bạn. Nếu nó ăn mồi trước, bạn mất cơ hội ghi điểm!"
+    },
+    {
+        title: "Điều kiện thua cuộc",
+        content: "Trò chơi kết thúc nếu rắn tự cắn vào thân mình hoặc va vào rắn CPU. Hãy cẩn thận!"
+    },
+    {
+        title: "Quyền trợ giúp (Hint)",
+        content: "Nhấn nút HINT để AI tự động điều khiển rắn trong 5 bước tiếp theo. Phí: -30 điểm."
+    },
+    {
+        title: "Điều kiện chiến thắng",
+        content: "Sống sót cho đến khi đồng hồ đếm ngược về 0."
+    }
+];
 
 export default function SnakeGame() {
     const navigate = useNavigate();
@@ -30,23 +85,24 @@ export default function SnakeGame() {
 
     const [playerSnake, setPlayerSnake] = useState(INITIAL_PLAYER_SNAKE);
     const [cpuSnake, setCpuSnake] = useState(INITIAL_CPU_SNAKE);
-    const [food, setFood] = useState({ x: 7, y: 7 });
+    const [food, setFood] = useState({ x: 7, y: 10 });
     const [direction, setDirection] = useState(INITIAL_DIRECTION);
     const [cpuDirection, setCpuDirection] = useState({ x: -1, y: 0 });
     const [score, setScore] = useState(0);
-    const [isBoosting, setIsBoosting] = useState(false);
     const [hintSteps, setHintSteps] = useState(0);
-    const [isPaused, setIsPaused] = useState(false);
 
     // Timer & Game state
     const [selectedTimeOption, setSelectedTimeOption] = useState(0);
-    const [timeLeft, setTimeLeft] = useState(60);
+    const [timeLeft, setTimeLeft] = useState(300);
+    const [totalGameTime, setTotalGameTime] = useState(300);
     const [elapsedTime, setElapsedTime] = useState(0);
     const [gameStarted, setGameStarted] = useState(false);
     const [gameOver, setGameOver] = useState(false);
     const [gameWon, setGameWon] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isLoadingSession, setIsLoadingSession] = useState(false);
+    const [showInstructions, setShowInstructions] = useState(false);
+    const [showExitDialog, setShowExitDialog] = useState(false);
 
     const gameLoopRef = useRef();
     const directionRef = useRef(INITIAL_DIRECTION);
@@ -63,14 +119,15 @@ export default function SnakeGame() {
                 if (response.status === "success" && response.data?.config) {
                     setConfig(response.data.config);
                     setGameId(response.data.id);
-                    const times = response.data.config.times || [1, 2, 3];
+                    const times = response.data.config.times || [5, 10, 20];
                     setTimeLeft(times[0] * 60);
+                    setTotalGameTime(times[0] * 60);
                 } else {
-                    setConfig({ speed: 150, times: [1, 2, 3] });
+                    setConfig({ speed: DEFAULT_SPEED, times: [5, 10, 20] });
                 }
             } catch (error) {
                 console.error("Failed to fetch snake config:", error);
-                setConfig({ speed: 150, times: [1, 2, 3] });
+                setConfig({ speed: DEFAULT_SPEED, times: [5, 10, 20] });
             } finally {
                 setLoading(false);
             }
@@ -95,7 +152,7 @@ export default function SnakeGame() {
         return newFood;
     }, []);
 
-    // BFS for hint
+    // BFS for hint - find path to food, avoid both snakes
     const getHintDirection = useCallback((head, target, body, cpuBody) => {
         const queue = [[head]];
         const visited = new Set([`${head.x},${head.y}`]);
@@ -146,8 +203,6 @@ export default function SnakeGame() {
 
         // Filter out reverse direction
         const validDirs = possibleDirs.filter(d => !(d.x === -currentDir.x && d.y === -currentDir.y));
-
-        // Shuffle for randomness
         const shuffled = validDirs.sort(() => Math.random() - 0.5);
 
         for (const dir of shuffled) {
@@ -164,7 +219,6 @@ export default function SnakeGame() {
             }
         }
 
-        // No safe direction, just keep current
         return currentDir;
     }, []);
 
@@ -176,34 +230,68 @@ export default function SnakeGame() {
         setCpuDirection({ x: -1, y: 0 });
         directionRef.current = INITIAL_DIRECTION;
         cpuDirectionRef.current = { x: -1, y: 0 };
-        setFood({ x: 7, y: 7 });
+        setFood({ x: 7, y: 10 });
         setScore(0);
         setHintSteps(0);
-        setIsBoosting(false);
-        setIsPaused(false);
         setGameOver(false);
         setGameWon(false);
     }, []);
 
     // --- START GAME ---
     const startGame = (timeIndex) => {
-        const times = config?.times || [1, 2, 3];
+        const times = config?.times || [5, 10, 20];
         setSelectedTimeOption(timeIndex);
-        setTimeLeft(times[timeIndex] * 60);
+        const gameTime = times[timeIndex] * 60;
+        setTimeLeft(gameTime);
+        setTotalGameTime(gameTime);
         setElapsedTime(0);
         initGame();
         setGameStarted(true);
     };
 
-    // --- GAME LOOP ---
+    // --- CLICK ON CELL TO SET DIRECTION ---
+    const handleCellClick = useCallback((x, y) => {
+        if (gameOver || !gameStarted || hintSteps > 0) return;
+
+        const head = playerSnake[0];
+
+        // Calculate direction from head to clicked cell
+        let dx = x - head.x;
+        let dy = y - head.y;
+
+        // Handle wrap-around
+        if (dx > GRID_SIZE / 2) dx -= GRID_SIZE;
+        if (dx < -GRID_SIZE / 2) dx += GRID_SIZE;
+        if (dy > GRID_SIZE / 2) dy -= GRID_SIZE;
+        if (dy < -GRID_SIZE / 2) dy += GRID_SIZE;
+
+        // Determine primary direction (horizontal or vertical)
+        let newDir;
+        if (Math.abs(dx) >= Math.abs(dy)) {
+            newDir = { x: dx > 0 ? 1 : -1, y: 0 };
+        } else {
+            newDir = { x: 0, y: dy > 0 ? 1 : -1 };
+        }
+
+        // Prevent reversing into self
+        const currentDir = directionRef.current;
+        if (newDir.x === -currentDir.x && newDir.y === -currentDir.y) {
+            return;
+        }
+
+        directionRef.current = newDir;
+        setDirection(newDir);
+    }, [gameOver, gameStarted, hintSteps, playerSnake]);
+
+    // --- GAME LOOP - Move both snakes ---
     const moveSnakes = useCallback(() => {
-        if (gameOver || isPaused || !gameStarted) return;
+        if (gameOver || !gameStarted) return;
 
         // Move Player
         setPlayerSnake((prevSnake) => {
             let nextDir = directionRef.current;
 
-            // Hint Logic
+            // Hint Logic - AI takes control
             if (hintSteps > 0) {
                 const aiDir = getHintDirection(prevSnake[0], food, prevSnake, cpuSnake);
                 if (aiDir) {
@@ -251,11 +339,9 @@ export default function SnakeGame() {
             return newSnake;
         });
 
-        // Move CPU
+        // Move CPU (random direction)
         setCpuSnake((prevCpu) => {
             const currentDir = cpuDirectionRef.current;
-
-            // Get random safe direction
             const newDir = getCpuRandomDirection(prevCpu[0], currentDir, prevCpu, playerSnake);
             cpuDirectionRef.current = newDir;
             setCpuDirection(newDir);
@@ -266,22 +352,12 @@ export default function SnakeGame() {
                 y: (head.y + newDir.y + GRID_SIZE) % GRID_SIZE,
             };
 
-            // Check CPU collision with own body
+            // Check if CPU hits itself or player (respawn)
             const hitsSelf = prevCpu.slice(1).some(s => s.x === newHead.x && s.y === newHead.y);
-            // Check CPU collision with player
             const hitsPlayer = playerSnake.some(s => s.x === newHead.x && s.y === newHead.y);
 
             if (hitsSelf || hitsPlayer) {
-                // CPU dies, respawn and give player points
-                setScore(s => s + 100);
-                toast({
-                    title: "+100 điểm!",
-                    description: "Máy tự đâm và chết!",
-                    className: "bg-amber-600 border-none text-white",
-                    duration: 1500
-                });
-
-                // Respawn CPU
+                // CPU respawns
                 return INITIAL_CPU_SNAKE;
             }
 
@@ -292,8 +368,8 @@ export default function SnakeGame() {
                 setFood(getRandomFood(playerSnake, newCpu));
                 toast({
                     title: "Máy ăn mồi!",
-                    description: "Bạn mất mồi đó",
-                    className: "bg-rose-600 border-none text-white",
+                    description: "Rắn CPU tranh được mồi",
+                    className: "bg-blue-600 border-none text-white",
                     duration: 1000
                 });
             } else {
@@ -302,18 +378,17 @@ export default function SnakeGame() {
 
             return newCpu;
         });
-    }, [gameOver, isPaused, gameStarted, food, hintSteps, cpuSnake, playerSnake, getRandomFood, getHintDirection, getCpuRandomDirection, toast]);
+    }, [gameOver, gameStarted, food, hintSteps, cpuSnake, playerSnake, getRandomFood, getHintDirection, getCpuRandomDirection, toast]);
 
     // --- GAME LOOP INTERVAL ---
     useEffect(() => {
-        if (loading || gameOver || isPaused || !gameStarted) return;
+        if (loading || gameOver || !gameStarted) return;
 
-        const baseSpeed = config?.speed || 150;
-        const currentSpeed = isBoosting ? baseSpeed / 3 : baseSpeed;
-
-        gameLoopRef.current = setInterval(moveSnakes, currentSpeed);
+        // Use fixed speed for better playability (ignore config speed)
+        const speed = DEFAULT_SPEED;
+        gameLoopRef.current = setInterval(moveSnakes, speed);
         return () => clearInterval(gameLoopRef.current);
-    }, [loading, gameOver, isPaused, gameStarted, config, isBoosting, moveSnakes]);
+    }, [loading, gameOver, gameStarted, moveSnakes]);
 
     // --- TIMER ---
     useEffect(() => {
@@ -341,6 +416,69 @@ export default function SnakeGame() {
         };
     }, [gameStarted, gameOver]);
 
+    // --- KEYBOARD CONTROLS ---
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (loading) return;
+
+            const times = config?.times || [5, 10, 20];
+
+            // Config screen controls
+            if (!gameStarted) {
+                switch (e.key) {
+                    case "ArrowLeft":
+                        e.preventDefault();
+                        setSelectedTimeOption(prev => Math.max(0, prev - 1));
+                        break;
+                    case "ArrowRight":
+                        e.preventDefault();
+                        setSelectedTimeOption(prev => Math.min(times.length - 1, prev + 1));
+                        break;
+                    case "Enter":
+                        e.preventDefault();
+                        startGame(selectedTimeOption);
+                        break;
+                    case "h":
+                    case "H":
+                        e.preventDefault();
+                        setShowInstructions(true);
+                        break;
+                    case "Escape":
+                    case "Backspace":
+                        e.preventDefault();
+                        navigate("/home");
+                        break;
+                }
+                return;
+            }
+
+            // In-game controls
+            if (!gameOver) {
+                switch (e.key) {
+                    case "h":
+                    case "H":
+                        e.preventDefault();
+                        if (hintSteps === 0) {
+                            setHintSteps(5);
+                            setScore(prev => Math.max(0, prev - 30));
+                        }
+                        break;
+                    case "Escape":
+                    case "Backspace":
+                        e.preventDefault();
+                        clearInterval(gameLoopRef.current);
+                        clearInterval(timerRef.current);
+                        clearInterval(elapsedRef.current);
+                        setShowExitDialog(true);
+                        break;
+                }
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [loading, gameStarted, gameOver, selectedTimeOption, config, navigate, hintSteps]);
+
     // --- SAVE HISTORY when game ends ---
     useEffect(() => {
         const saveHistory = async () => {
@@ -359,7 +497,79 @@ export default function SnakeGame() {
         saveHistory();
     }, [gameOver, gameId, score, elapsedTime, gameStarted]);
 
-    // --- SAVE GAME SESSION ---
+    // Handle back from config screen
+    const handleBackFromConfig = () => {
+        if (score > 0) {
+            setShowExitDialog(true);
+        } else {
+            navigate("/home");
+        }
+    };
+
+    const handleExitWithSave = async () => {
+        await handleSave();
+        setShowExitDialog(false);
+        navigate("/home");
+    };
+
+    const handleExitWithoutSave = () => {
+        setShowExitDialog(false);
+        navigate("/home");
+    };
+
+    // Handle exit with save from gameplay
+    const handleExitGameWithSave = async () => {
+        await handleSave();
+        setShowExitDialog(false);
+        setGameStarted(false);
+        setGameOver(false);
+    };
+
+    // Handle exit without save from gameplay
+    const handleExitGameWithoutSave = () => {
+        setShowExitDialog(false);
+        setGameStarted(false);
+        setGameOver(false);
+    };
+
+    // Handle cancel exit (resume game)
+    const handleCancelExit = () => {
+        setShowExitDialog(false);
+        // Resume game loop and timers
+        if (gameStarted && !gameOver) {
+            const speed = DEFAULT_SPEED;
+            gameLoopRef.current = setInterval(moveSnakes, speed);
+
+            timerRef.current = setInterval(() => {
+                setTimeLeft(prev => {
+                    if (prev <= 1) {
+                        clearInterval(timerRef.current);
+                        setGameWon(true);
+                        setGameOver(true);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+
+            elapsedRef.current = setInterval(() => {
+                setElapsedTime(prev => prev + 1);
+            }, 1000);
+        }
+    };
+
+    const handleBack = () => {
+        if (gameStarted && !gameOver) {
+            clearInterval(gameLoopRef.current);
+            clearInterval(timerRef.current);
+            clearInterval(elapsedRef.current);
+            setShowExitDialog(true);
+        } else if (!gameStarted) {
+            handleBackFromConfig();
+        }
+    };
+
+    // Save game
     const handleSave = async () => {
         if (!gameId) return;
         setIsSaving(true);
@@ -368,16 +578,16 @@ export default function SnakeGame() {
                 game_id: gameId,
                 matrix_state: JSON.stringify({
                     playerSnake,
-                    cpuSnake,
                     food,
                     direction: directionRef.current,
-                    cpuDirection: cpuDirectionRef.current
+                    timeLeft,
+                    totalGameTime
                 }),
                 current_score: score,
                 elapsed_time: elapsedTime
             });
             toast({
-                title: "Đã lưu game!",
+                title: "💾 Đã lưu game!",
                 description: "Bạn có thể tiếp tục chơi sau",
                 className: "bg-sky-600 border-none text-white"
             });
@@ -388,7 +598,7 @@ export default function SnakeGame() {
         }
     };
 
-    // --- LOAD GAME SESSION ---
+    // Load game
     const handleLoad = async () => {
         if (!gameId) return;
         setIsLoadingSession(true);
@@ -399,21 +609,23 @@ export default function SnakeGame() {
                 const state = JSON.parse(session.matrix_state);
 
                 setPlayerSnake(state.playerSnake);
-                setCpuSnake(state.cpuSnake);
                 setFood(state.food);
                 directionRef.current = state.direction;
-                cpuDirectionRef.current = state.cpuDirection;
                 setDirection(state.direction);
-                setCpuDirection(state.cpuDirection);
                 setScore(session.current_score || 0);
+
+                const savedTimeLeft = state.timeLeft || (state.totalGameTime - session.elapsed_time) || 300;
+                setTimeLeft(savedTimeLeft);
+                setTotalGameTime(state.totalGameTime || savedTimeLeft);
                 setElapsedTime(session.elapsed_time || 0);
+
                 setGameStarted(true);
                 setGameOver(false);
                 setGameWon(false);
 
                 toast({
-                    title: "Đã load game!",
-                    description: `Điểm: ${session.current_score}`,
+                    title: "📥 Đã load game!",
+                    description: `Điểm: ${session.current_score} | Thời gian còn: ${Math.floor(savedTimeLeft / 60)}:${String(savedTimeLeft % 60).padStart(2, '0')}`,
                     className: "bg-teal-600 border-none text-white"
                 });
             }
@@ -424,110 +636,25 @@ export default function SnakeGame() {
         }
     };
 
-    // --- CONTROLS ---
-    const handleKeyDown = useCallback((e) => {
-        if (loading) return;
-
-        // Time selection screen
-        if (!gameStarted && !gameOver) {
-            const times = config?.times || [1, 2, 3];
-            switch (e.key) {
-                case "ArrowLeft":
-                    setSelectedTimeOption(prev => (prev - 1 + times.length) % times.length);
-                    break;
-                case "ArrowRight":
-                    setSelectedTimeOption(prev => (prev + 1) % times.length);
-                    break;
-                case "Enter":
-                    startGame(selectedTimeOption);
-                    break;
-                case "l": case "L":
-                    handleLoad();
-                    break;
-                case "Escape":
-                    navigate("/home");
-                    break;
-            }
-            return;
-        }
-
-        // Game over screen
-        if (gameOver) {
-            if (e.key === "Enter") {
-                setGameStarted(false);
-                setGameOver(false);
-                setGameWon(false);
-            }
-            if (e.key === "Escape") navigate("/home");
-            return;
-        }
-
-        // During gameplay
-        const dx = directionRef.current.x;
-        const dy = directionRef.current.y;
-
-        switch (e.key) {
-            case "ArrowLeft":
-                directionRef.current = { x: dy, y: -dx };
-                setDirection({ x: dy, y: -dx });
-                break;
-            case "ArrowRight":
-                directionRef.current = { x: -dy, y: dx };
-                setDirection({ x: -dy, y: dx });
-                break;
-            case "Enter":
-                setIsBoosting(true);
-                break;
-            case "h": case "H":
-                setHintSteps(5);
-                setScore(prev => Math.max(0, prev - 30));
-                toast({
-                    title: "CPU Assistance (-30 điểm)",
-                    description: "Máy tự điều khiển 5 bước!",
-                    className: "bg-yellow-600 border-none text-white"
-                });
-                break;
-            case "s": case "S":
-                handleSave();
-                break;
-            case "Escape":
-                setIsPaused(p => !p);
-                break;
-        }
-    }, [loading, gameStarted, gameOver, config, selectedTimeOption, navigate, toast, handleSave, handleLoad, startGame]);
-
-    const handleKeyUp = useCallback((e) => {
-        if (e.key === "Enter") setIsBoosting(false);
-    }, []);
-
-    useEffect(() => {
-        window.addEventListener("keydown", handleKeyDown);
-        window.addEventListener("keyup", handleKeyUp);
-        return () => {
-            window.removeEventListener("keydown", handleKeyDown);
-            window.removeEventListener("keyup", handleKeyUp);
-        };
-    }, [handleKeyDown, handleKeyUp]);
-
     // --- LOADING STATE ---
     if (loading) return (
         <div className="flex flex-col items-center justify-center p-20 gap-4">
             <Loader2 className="w-12 h-12 text-emerald-500 animate-spin" />
-            <span className="text-slate-400 font-mono animate-pulse">LOADING_SNAKE_SYSTEM...</span>
+            <span className="text-slate-400 font-mono animate-pulse">LOADING_SNAKE_GAME...</span>
         </div>
     );
 
-    const times = config?.times || [1, 2, 3];
+    const times = config?.times || [5, 10, 20];
 
     // --- TIME SELECTION SCREEN ---
     if (!gameStarted && !gameOver) {
         return (
-            <div className="flex flex-col items-center gap-8 w-full max-w-lg">
+            <div className="flex flex-col items-center gap-6 w-full max-w-2xl">
                 <div className="text-center">
                     <h2 className="text-3xl font-black text-white mb-2 tracking-tight flex items-center justify-center gap-3">
-                        🐍 SNAKE BATTLE
+                        🐍 SNAKE GAME
                     </h2>
-                    <p className="text-slate-400 text-sm">Đua với máy! Ăn mồi và sống sót</p>
+                    <p className="text-slate-400 text-sm">Click vào ô để điều khiển hướng rắn!</p>
                 </div>
 
                 <div className="flex gap-4">
@@ -550,24 +677,66 @@ export default function SnakeGame() {
                     ))}
                 </div>
 
-                <div className="flex gap-4">
-                    <Button
-                        onClick={() => startGame(selectedTimeOption)}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-12 py-6 rounded-2xl text-lg"
-                    >
-                        BẮT ĐẦU
-                    </Button>
-                    <Button
-                        onClick={handleLoad}
-                        variant="outline"
-                        className="border-slate-600 text-slate-300 hover:bg-slate-800 px-8 py-6 rounded-2xl"
-                        disabled={isLoadingSession}
-                    >
-                        {isLoadingSession ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5 mr-2" />}
-                        LOAD
-                    </Button>
-                </div>
-                <p className="text-slate-600 text-xs font-mono">[←/→] Chọn | [ENTER] Bắt đầu | [L] Load game</p>
+                <Button
+                    onClick={handleLoad}
+                    variant="outline"
+                    className="border-slate-600 text-slate-300 hover:bg-slate-800 px-8 py-4 rounded-xl"
+                    disabled={isLoadingSession}
+                >
+                    {isLoadingSession ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+                    Tiếp tục game đã lưu
+                </Button>
+
+                {/* Instructions Dialog */}
+                <AlertDialog open={showInstructions} onOpenChange={setShowInstructions}>
+                    <AlertDialogContent className="bg-slate-900 border-slate-700">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-white flex items-center gap-2">
+                                <HelpCircle className="w-5 h-5 text-yellow-400" />
+                                Hướng dẫn chơi Snake
+                            </AlertDialogTitle>
+                            <AlertDialogDescription asChild>
+                                <div className="space-y-4 text-slate-300 mt-4">
+                                    {GAME_INSTRUCTIONS.map((item, idx) => (
+                                        <div key={idx} className="border-l-2 border-emerald-500 pl-3">
+                                            <h4 className="text-white font-bold text-sm uppercase mb-1">
+                                                {idx + 1}. {item.title}
+                                            </h4>
+                                            <p className="text-xs leading-relaxed text-slate-400">
+                                                {item.content}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogAction className="bg-emerald-600 hover:bg-emerald-500">
+                                Đã hiểu
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+
+                {/* Exit Dialog */}
+                <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+                    <AlertDialogContent className="bg-slate-900 border-slate-700">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-white">Lưu game trước khi thoát?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Bạn có muốn lưu tiến trình game hiện tại không?
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel onClick={handleExitWithoutSave} className="bg-slate-800 text-white hover:bg-slate-700">
+                                Không lưu
+                            </AlertDialogCancel>
+                            <AlertDialogAction onClick={handleExitWithSave} className="bg-emerald-600 hover:bg-emerald-500">
+                                Lưu và thoát
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         );
     }
@@ -577,29 +746,15 @@ export default function SnakeGame() {
         <div className="flex flex-col items-center gap-3 w-full max-w-5xl h-full px-4 py-2 justify-center">
 
             {/* Stats Bar */}
-            <div className="grid grid-cols-4 w-full max-w-2xl gap-3">
+            <div className="grid grid-cols-3 w-full max-w-2xl gap-3">
                 <StatBox label="ĐIỂM" value={score} color="text-emerald-400" icon={<Target className="w-3 h-3" />} />
-                <StatBox label="BẠN" value={`${playerSnake.length} ô`} color="text-emerald-400" icon={<User className="w-3 h-3" />} />
-                <StatBox label="MÁY" value={`${cpuSnake.length} ô`} color="text-blue-400" icon={<Cpu className="w-3 h-3" />} />
+                <StatBox label="ĐỘ DÀI" value={`${playerSnake.length} ô`} color="text-emerald-400" icon={<User className="w-3 h-3" />} />
                 <StatBox
                     label="THỜI GIAN"
                     value={`${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`}
                     color={timeLeft < 30 ? "text-rose-400 animate-pulse" : "text-amber-400"}
                     icon={<Clock className="w-3 h-3" />}
                 />
-            </div>
-
-            {/* Speed & Controls */}
-            <div className="flex items-center gap-4 bg-slate-900/50 px-6 py-2 rounded-full border border-white/5">
-                <div className={cn("flex items-center gap-2", isBoosting ? "text-rose-400" : "text-sky-400")}>
-                    <Zap className="w-4 h-4" />
-                    <span className="font-bold text-sm">{isBoosting ? "BOOST!" : "NORMAL"}</span>
-                </div>
-                <div className="w-px h-6 bg-white/10" />
-                <Button size="sm" variant="ghost" onClick={handleSave} disabled={isSaving}
-                    className="h-7 w-7 p-0 text-sky-400 hover:bg-sky-500/20">
-                    {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                </Button>
             </div>
 
             {/* Game Board */}
@@ -625,23 +780,59 @@ export default function SnakeGame() {
                         const isCpuHead = cpuIdx === 0;
                         const isCpuBody = cpuIdx > 0;
                         const isHintActive = hintSteps > 0;
+                        const isEmpty = !isFood && playerIdx === -1 && cpuIdx === -1;
 
                         return (
                             <div
                                 key={i}
+                                onClick={() => handleCellClick(x, y)}
                                 className={cn(
-                                    "rounded-[2px] transition-all duration-100 relative",
-                                    "bg-slate-900/40 border border-white/5",
-                                    isFood && "bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.6)] animate-pulse",
-                                    isPlayerHead && (isHintActive ? "bg-yellow-400" : "bg-emerald-400"),
-                                    isPlayerHead && "shadow-[0_0_10px_rgba(52,211,153,0.5)] z-10 scale-110 rounded-sm",
-                                    isPlayerBody && "bg-emerald-600/70",
-                                    isCpuHead && "bg-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.5)] z-10 scale-110 rounded-sm",
-                                    isCpuBody && "bg-blue-600/70"
+                                    "rounded-[4px] relative cursor-pointer",
+                                    // CRITICAL: Duration 300ms matches closely with 350ms game speed for continuous flow
+                                    // ease-linear removes the stop-start feel
+                                    "transition-all duration-300 ease-linear transform-gpu will-change-transform",
+                                    CELL_COLORS.empty,
+                                    isFood && CELL_COLORS.food,
+                                    isPlayerHead && (isHintActive ? CELL_COLORS.playerHeadHint : CELL_COLORS.playerHead),
+                                    isPlayerBody && CELL_COLORS.playerBody,
+                                    isCpuHead && CELL_COLORS.cpuHead,
+                                    isCpuBody && CELL_COLORS.cpuBody,
+                                    isEmpty && !gameOver && "hover:bg-emerald-500/20 hover:scale-110 duration-75"
                                 )}
+                                style={{
+                                    // Subtle scaling for body to give organic feel
+                                    // Opacity gradient creates a trail effect
+                                    transform: (isPlayerBody || isCpuBody) ? 'scale(0.92)' :
+                                        (isPlayerHead || isCpuHead) ? 'scale(1.15)' : undefined,
+                                    opacity: isPlayerBody ? Math.max(0.7, 1 - playerIdx * 0.03) :
+                                        isCpuBody ? Math.max(0.7, 1 - cpuIdx * 0.03) : 1,
+                                    zIndex: isPlayerHead || isCpuHead ? 20 :
+                                        isPlayerBody || isCpuBody ? 10 : 0
+                                }}
                             >
                                 {isFood && (
-                                    <div className="absolute inset-0 bg-white/20 animate-ping rounded-full m-1" />
+                                    <div className="absolute inset-2 bg-white/40 rounded-full animate-ping" />
+                                )}
+
+                                {/* 3D Shine Effect for Heads */}
+                                {(isPlayerHead || isCpuHead) && (
+                                    <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent opacity-50 rounded-xl" />
+                                )}
+
+                                {/* Eyes for Player Snake */}
+                                {isPlayerHead && (
+                                    <div className="absolute inset-0 flex items-center justify-center gap-[2px]">
+                                        <div className="w-1.5 h-1.5 bg-black rounded-full animate-pulse" />
+                                        <div className="w-1.5 h-1.5 bg-black rounded-full animate-pulse" />
+                                    </div>
+                                )}
+
+                                {/* Eyes for CPU Snake */}
+                                {isCpuHead && (
+                                    <div className="absolute inset-0 flex items-center justify-center gap-[2px]">
+                                        <div className="w-1.5 h-1.5 bg-red-900 rounded-full" />
+                                        <div className="w-1.5 h-1.5 bg-red-900 rounded-full" />
+                                    </div>
                                 )}
                             </div>
                         );
@@ -676,23 +867,43 @@ export default function SnakeGame() {
                             </div>
                         </div>
                     )}
-
-                    {/* Pause Overlay */}
-                    {isPaused && !gameOver && (
-                        <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] flex items-center justify-center z-20">
-                            <div className="bg-slate-900/90 px-6 py-2 rounded-full border border-white/10 flex items-center gap-3">
-                                <Info className="w-4 h-4 text-sky-400" />
-                                <span className="text-xs font-bold text-sky-400 uppercase tracking-widest">PAUSED - [ESC] TO RESUME</span>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
 
-            {/* Controls Guide */}
-            <div className="text-slate-500 text-xs font-mono text-center">
-                [←/→] Rẽ | [ENTER giữ] Boost | [H] Hint | [S] Lưu | [ESC] Tạm dừng
-            </div>
+            {/* Save Game Button */}
+            <Button
+                onClick={handleSave}
+                disabled={isSaving || !gameStarted || gameOver}
+                className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all"
+            >
+                {isSaving ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                    <Save className="w-5 h-5" />
+                )}
+                {isSaving ? "Đang lưu..." : "Lưu Game"}
+            </Button>
+
+            {/* Exit Dialog */}
+            <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+                <AlertDialogContent className="bg-slate-900 border-slate-700">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-white">Tạm dừng game</AlertDialogTitle>
+                        <AlertDialogDescription>Bạn muốn làm gì tiếp theo?</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
+                        <Button onClick={handleCancelExit} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800">
+                            Tiếp tục chơi
+                        </Button>
+                        <AlertDialogCancel onClick={handleExitGameWithoutSave} className="bg-slate-800 text-white hover:bg-slate-700">
+                            Thoát không lưu
+                        </AlertDialogCancel>
+                        <AlertDialogAction onClick={handleExitGameWithSave} className="bg-emerald-600 hover:bg-emerald-500">
+                            Lưu & thoát
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
