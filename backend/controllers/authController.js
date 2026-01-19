@@ -326,7 +326,9 @@ class AuthController {
     try {
       // Set user status to Offline
       if (req.user && req.user.id) {
-        await db("users").where("id", req.user.id).update({ status: "Offline" });
+        await db("users")
+          .where("id", req.user.id)
+          .update({ status: "Offline" });
       }
 
       res.status(200).json({
