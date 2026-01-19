@@ -28,6 +28,10 @@ export default function AuthPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState(null);
 
+  // Register OTP flow
+  const [registerStep, setRegisterStep] = useState(1); // 1: form, 2: OTP
+  const [registerOTP, setRegisterOTP] = useState("");
+
   // Forgot password flow
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotStep, setForgotStep] = useState(1);
@@ -41,6 +45,19 @@ export default function AuthPage() {
     setError(null);
     setIsLoading(true);
     try {
+      // Basic validation
+      if (!emailOrUsername.trim()) {
+        setError("Vui lòng nhập email hoặc username");
+        setIsLoading(false);
+        return;
+      }
+
+      if (password.length < 6) {
+        setError("Mật khẩu phải có ít nhất 6 ký tự");
+        setIsLoading(false);
+        return;
+      }
+
       const result = await contextLogin(emailOrUsername, password);
       if (result.success) {
         const user = result.user;
@@ -59,18 +76,87 @@ export default function AuthPage() {
     }
   };
 
-  const handleRegister = async (e) => {
+  // Step 1: Send OTP to email for registration
+  const handleSendRegisterOTP = async (e) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
     try {
+      // Validate username: tối thiểu 6 ký tự
+      if (!username || username.trim().length < 6) {
+        setError("Tên người dùng phải có ít nhất 6 ký tự");
+        setIsLoading(false);
+        return;
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(regEmail)) {
+        setError("Email không hợp lệ");
+        setIsLoading(false);
+        return;
+      }
+
+      // Validate password match
       if (regPassword !== confirmPassword) {
         setError("Mật khẩu và xác nhận mật khẩu không khớp");
         setIsLoading(false);
         return;
       }
-      const result = await contextRegister(username, regEmail, regPassword, confirmPassword);
+
+      // Validate password strength: 8+ chars, uppercase, lowercase, number, special char
+      if (regPassword.length < 8) {
+        setError("Mật khẩu phải có ít nhất 8 ký tự");
+        setIsLoading(false);
+        return;
+      }
+      if (!/[A-Z]/.test(regPassword)) {
+        setError("Mật khẩu phải chứa ít nhất 1 chữ cái viết hoa");
+        setIsLoading(false);
+        return;
+      }
+      if (!/[a-z]/.test(regPassword)) {
+        setError("Mật khẩu phải chứa ít nhất 1 chữ cái viết thường");
+        setIsLoading(false);
+        return;
+      }
+      if (!/[0-9]/.test(regPassword)) {
+        setError("Mật khẩu phải chứa ít nhất 1 chữ số");
+        setIsLoading(false);
+        return;
+      }
+      if (!/[!@#$%^&*(),.?":{}|<>]/.test(regPassword)) {
+        setError("Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt (!@#$%^&*...)");
+        setIsLoading(false);
+        return;
+      }
+
+      // Send OTP to email
+      await authService.sendRegisterOTP(regEmail, username);
+      toast({
+        title: "Thành công",
+        description: "Mã OTP đã được gửi đến email của bạn",
+      });
+      setRegisterStep(2);
+    } catch (err) {
+      setError(err.message || "Không thể gửi OTP");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Step 2: Verify OTP and create account
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+    try {
+      const result = await contextRegister(username, regEmail, regPassword, confirmPassword, registerOTP);
       if (result.success) {
+        toast({
+          title: "Đăng ký thành công",
+          description: "Chào mừng bạn đến với hệ thống!",
+        });
         navigate("/home");
       } else {
         setError(result.message || "Đăng ký thất bại");
@@ -305,38 +391,87 @@ export default function AuthPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Đăng ký</CardTitle>
-                  <CardDescription>Tạo tài khoản mới để bắt đầu</CardDescription>
+                  <CardDescription>
+                    {registerStep === 1 && "Tạo tài khoản mới để bắt đầu"}
+                    {registerStep === 2 && "Nhập mã OTP đã được gửi đến email của bạn"}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <form onSubmit={handleRegister} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="username">Tên người dùng</Label>
-                      <Input id="username" type="text" placeholder="username" required value={username} onChange={(e) => setUsername(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="reg-email">Email</Label>
-                      <Input
-                        id="reg-email"
-                        type="email"
-                        placeholder="name@example.com"
-                        required
-                        value={regEmail}
-                        onChange={(e) => setRegEmail(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="reg-password">Mật khẩu</Label>
-                      <Input id="reg-password" type="password" required value={regPassword} onChange={(e) => setRegPassword(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="confirm-password">Xác nhận mật khẩu</Label>
-                      <Input id="confirm-password" type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-                    </div>
-                    {error && <div className="text-destructive text-sm">{error}</div>}
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? "Đang đăng ký..." : "Đăng ký"}
-                    </Button>
-                  </form>
+                  {registerStep === 1 && (
+                    <form onSubmit={handleSendRegisterOTP} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="username">Tên người dùng</Label>
+                        <Input id="username" type="text" placeholder="username" required value={username} onChange={(e) => setUsername(e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="reg-email">Email</Label>
+                        <Input
+                          id="reg-email"
+                          type="email"
+                          placeholder="name@example.com"
+                          required
+                          value={regEmail}
+                          onChange={(e) => setRegEmail(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="reg-password">Mật khẩu</Label>
+                        <Input id="reg-password" type="password" required value={regPassword} onChange={(e) => setRegPassword(e.target.value)} />
+                        <div className="text-xs space-y-1">
+                          <div className="text-muted-foreground">Yêu cầu mật khẩu:</div>
+                          <div className={regPassword.length >= 8 ? "text-green-600" : "text-muted-foreground"}>
+                            {regPassword.length >= 8 ? "✓" : "○"} Tối thiểu 8 ký tự
+                          </div>
+                          <div className={/[A-Z]/.test(regPassword) ? "text-green-600" : "text-muted-foreground"}>
+                            {/[A-Z]/.test(regPassword) ? "✓" : "○"} Ít nhất 1 chữ in hoa (A-Z)
+                          </div>
+                          <div className={/[a-z]/.test(regPassword) ? "text-green-600" : "text-muted-foreground"}>
+                            {/[a-z]/.test(regPassword) ? "✓" : "○"} Ít nhất 1 chữ thường (a-z)
+                          </div>
+                          <div className={/[0-9]/.test(regPassword) ? "text-green-600" : "text-muted-foreground"}>
+                            {/[0-9]/.test(regPassword) ? "✓" : "○"} Ít nhất 1 chữ số (0-9)
+                          </div>
+                          <div className={/[!@#$%^&*(),.?":{}|<>]/.test(regPassword) ? "text-green-600" : "text-muted-foreground"}>
+                            {/[!@#$%^&*(),.?":{}|<>]/.test(regPassword) ? "✓" : "○"} Ít nhất 1 ký tự đặc biệt (!@#$%...)
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirm-password">Xác nhận mật khẩu</Label>
+                        <Input id="confirm-password" type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                      </div>
+                      {error && <div className="text-destructive text-sm">{error}</div>}
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? "Đang gửi OTP..." : "Tiếp tục"}
+                      </Button>
+                    </form>
+                  )}
+
+                  {registerStep === 2 && (
+                    <form onSubmit={handleRegister} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="register-otp">Mã OTP (6 chữ số)</Label>
+                        <Input
+                          id="register-otp"
+                          type="text"
+                          placeholder="123456"
+                          required
+                          maxLength={6}
+                          value={registerOTP}
+                          onChange={(e) => setRegisterOTP(e.target.value.replace(/\D/g, ""))}
+                        />
+                      </div>
+                      {error && <div className="text-destructive text-sm">{error}</div>}
+                      <div className="flex gap-2">
+                        <Button type="button" variant="outline" onClick={() => setRegisterStep(1)} disabled={isLoading}>
+                          Quay lại
+                        </Button>
+                        <Button type="submit" className="flex-1" disabled={isLoading}>
+                          {isLoading ? "Đang đăng ký..." : "Hoàn tất đăng ký"}
+                        </Button>
+                      </div>
+                    </form>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

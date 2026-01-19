@@ -73,9 +73,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (username, email, password, confirmPassword) => {
+  const register = async (username, email, password, confirmPassword, otp) => {
     try {
-      const response = await authService.register(username, email, password, confirmPassword);
+      const response = await authService.register(username, email, password, confirmPassword, otp);
       
       if (response && response.status === "success") {
         // authService đã lưu vào localStorage, giờ cập nhật state

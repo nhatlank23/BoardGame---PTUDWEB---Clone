@@ -4,23 +4,23 @@ const { generateOTP, sendOTPEmail } = require("../configs/email");
 const { saveOTP, checkOTP, verifyOTP } = require("../configs/otpStore");
 
 class AuthController {
-  // POST /api/auth/register
-  static async register(req, res) {
+  // POST /api/auth/send-register-otp - Gửi OTP xác thực đăng ký
+  static async sendRegisterOTP(req, res) {
     try {
-      const { username, email, password, confirmPassword } = req.body;
+      const { email, username } = req.body;
 
-      // Validate input
-      if (!username || !email || !password) {
+      if (!email || !username) {
         return res.status(400).json({
           status: "error",
-          message: "Username, email và password là bắt buộc",
+          message: "Email và username là bắt buộc",
         });
       }
 
-      if (password !== confirmPassword) {
+      // Validate username: tối thiểu 6 ký tự
+      if (!username || username.trim().length < 6) {
         return res.status(400).json({
           status: "error",
-          message: "Mật khẩu xác nhận không khớp",
+          message: "Username phải có ít nhất 6 ký tự",
         });
       }
 
@@ -33,11 +33,120 @@ class AuthController {
         });
       }
 
-      // Validate password length
-      if (password.length < 6) {
+      // Check if username exists
+      const existingUsername = await UserModel.findByUsername(username);
+      if (existingUsername) {
+        return res.status(409).json({
+          status: "error",
+          message: "Username đã tồn tại",
+        });
+      }
+
+      // Check if email exists
+      const existingEmail = await UserModel.findByEmail(email);
+      if (existingEmail) {
+        return res.status(409).json({
+          status: "error",
+          message: "Email đã được sử dụng",
+        });
+      }
+
+      // Tạo và lưu OTP
+      const otp = generateOTP();
+      saveOTP(email, otp);
+
+      // Gửi email
+      await sendOTPEmail(email, otp, "Mã xác thực đăng ký tài khoản");
+
+      res.status(200).json({
+        status: "success",
+        message: "Mã OTP đã được gửi đến email của bạn",
+      });
+    } catch (error) {
+      console.error("Send register OTP error:", error);
+      res.status(500).json({
+        status: "error",
+        message: "Không thể gửi mã OTP. Vui lòng thử lại sau",
+        error: error.message,
+      });
+    }
+  }
+
+  // POST /api/auth/register
+  static async register(req, res) {
+    try {
+      const { username, email, password, confirmPassword, otp } = req.body;
+
+      // Validate input
+      if (!username || !email || !password || !otp) {
         return res.status(400).json({
           status: "error",
-          message: "Mật khẩu phải có ít nhất 6 ký tự",
+          message: "Username, email, password và OTP là bắt buộc",
+        });
+      }
+
+      if (password !== confirmPassword) {
+        return res.status(400).json({
+          status: "error",
+          message: "Mật khẩu xác nhận không khớp",
+        });
+      }
+
+      // Validate username: tối thiểu 6 ký tự
+      if (!username || username.trim().length < 6) {
+        return res.status(400).json({
+          status: "error",
+          message: "Username phải có ít nhất 6 ký tự",
+        });
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Email không hợp lệ",
+        });
+      }
+
+      // Validate password strength: Tối thiểu 8 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt
+      if (password.length < 8) {
+        return res.status(400).json({
+          status: "error",
+          message: "Mật khẩu phải có ít nhất 8 ký tự",
+        });
+      }
+      if (!/[A-Z]/.test(password)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Mật khẩu phải chứa ít nhất 1 chữ cái viết hoa",
+        });
+      }
+      if (!/[a-z]/.test(password)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Mật khẩu phải chứa ít nhất 1 chữ cái viết thường",
+        });
+      }
+      if (!/[0-9]/.test(password)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Mật khẩu phải chứa ít nhất 1 chữ số",
+        });
+      }
+      if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt (!@#$%^&*...)",
+        });
+      }
+
+      // Xác thực OTP
+      const otpResult = verifyOTP(email, otp);
+      if (!otpResult.valid) {
+        return res.status(400).json({
+          status: "error",
+          message: otpResult.message,
         });
       }
 
@@ -211,7 +320,7 @@ class AuthController {
       // Với JWT stateless, logout chủ yếu xử lý ở client (xóa token)
       // Server chỉ trả response thành công
       // Có thể log hoạt động logout nếu cần
-      
+
       res.status(200).json({
         status: "success",
         message: "Đăng xuất thành công",

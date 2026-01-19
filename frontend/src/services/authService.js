@@ -3,8 +3,17 @@ import { apiClient } from "@/lib/apiClient";
 import { storageService } from "@/lib/storage";
 
 export const authService = {
-  // Đăng ký tài khoản mới
-  async register(username, email, password, confirmPassword) {
+  // Gửi OTP để xác thực email khi đăng ký
+  async sendRegisterOTP(email, username) {
+    return await apiClient.post(
+      "/auth/send-register-otp",
+      { email, username },
+      { skipAutoLogout: true }
+    );
+  },
+
+  // Đăng ký tài khoản mới (cần OTP)
+  async register(username, email, password, confirmPassword, otp) {
     const response = await apiClient.post(
       "/auth/register",
       {
@@ -12,6 +21,7 @@ export const authService = {
         email,
         password,
         confirmPassword,
+        otp,
       },
       { skipAutoLogout: true }
     );
