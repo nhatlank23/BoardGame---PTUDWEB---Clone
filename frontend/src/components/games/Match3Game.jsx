@@ -86,11 +86,38 @@ export default function Match3Game() {
     const [isLoadingSession, setIsLoadingSession] = useState(false);
     const [showInstructions, setShowInstructions] = useState(false);
     const [showExitDialog, setShowExitDialog] = useState(false);
+    const [showNavigationDialog, setShowNavigationDialog] = useState(false);
+    const [pendingNavigation, setPendingNavigation] = useState(null);
 
     const timerRef = useRef();
     const elapsedRef = useRef();
     const aiTimerRef = useRef();
     const containerRef = useRef(null);
+    const isNavigatingRef = useRef(false);
+
+    useEffect(() => {
+        const shouldBlock = gameStarted && gameStatus === "playing" && !isNavigatingRef.current;
+        
+        const handleClick = (e) => {
+            if (!shouldBlock) return;
+            
+            const target = e.target.closest('a[href]');
+            if (target && target.getAttribute('href') !== window.location.pathname) {
+                e.preventDefault();
+                e.stopPropagation();
+                setPendingNavigation(target.getAttribute('href'));
+                setShowNavigationDialog(true);
+            }
+        };
+
+        if (shouldBlock) {
+            document.addEventListener('click', handleClick, true);
+        }
+
+        return () => {
+            document.removeEventListener('click', handleClick, true);
+        };
+    }, [gameStarted, gameStatus]);
 
     // --- 1. FETCH CONFIG ---
     useEffect(() => {
@@ -584,6 +611,37 @@ export default function Match3Game() {
 
     // --- 5 CONTROL BUTTONS HANDLERS ---
 
+    // Navigation handlers
+    const handleNavigationWithSave = async () => {
+        try {
+            await handleSave();
+            isNavigatingRef.current = true;
+            setShowNavigationDialog(false);
+            if (pendingNavigation) {
+                navigate(pendingNavigation);
+            }
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "Lỗi khi lưu trò chơi",
+                description: error.message,
+            });
+        }
+    };
+
+    const handleNavigationWithoutSave = () => {
+        isNavigatingRef.current = true;
+        setShowNavigationDialog(false);
+        if (pendingNavigation) {
+            navigate(pendingNavigation);
+        }
+    };
+
+    const handleCancelNavigation = () => {
+        setShowNavigationDialog(false);
+        setPendingNavigation(null);
+    };
+
     // 1. Left - Navigate time options (config) or no action (game)
     const handleLeft = () => {
         if (!gameStarted) {
@@ -870,37 +928,38 @@ export default function Match3Game() {
 
     // --- MAIN GAME SCREEN ---
     return (
-        <div className="flex flex-col items-center gap-3 w-full max-w-5xl h-full px-4 py-2 justify-center">
+        <div className="flex flex-col items-center w-full h-full px-4 py-4 overflow-y-auto">
+            <div className="flex flex-col items-center gap-3 w-full max-w-5xl">
 
-            {/* Score Bars */}
-            <div className="w-full max-w-2xl grid grid-cols-2 gap-4">
-                <ScoreBar
-                    label="Điểm số của tôi"
-                    score={playerScore}
-                    target={targetScore}
-                    icon={<User className="w-4 h-4" />}
-                    color="emerald"
-                />
-                <ScoreBar
-                    label="Điểm số của máy"
-                    score={computerScore}
-                    target={targetScore}
-                    icon={<Cpu className="w-4 h-4" />}
-                    color="rose"
-                />
-            </div>
+                {/* Score Bars */}
+                <div className="w-full max-w-2xl grid grid-cols-2 gap-4 flex-shrink-0">
+                    <ScoreBar
+                        label="Điểm số của tôi"
+                        score={playerScore}
+                        target={targetScore}
+                        icon={<User className="w-4 h-4" />}
+                        color="emerald"
+                    />
+                    <ScoreBar
+                        label="Điểm số của máy"
+                        score={computerScore}
+                        target={targetScore}
+                        icon={<Cpu className="w-4 h-4" />}
+                        color="rose"
+                    />
+                </div>
 
-            {/* Timer & Info */}
-            <div className="flex items-center gap-4 bg-slate-900/60 px-6 py-2 rounded-full border border-white/10">
-                <div className={cn("flex items-center gap-2", timeLeft < 30 ? "text-rose-400 animate-pulse" : "text-amber-400")}>
-                    <Clock className="w-4 h-4" />
-                    <span className="font-mono font-bold text-lg">{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
-                </div>
-                <div className="w-px h-6 bg-white/10" />
-                <div className="flex items-center gap-2 text-violet-400">
-                    <Target className="w-4 h-4" />
-                    <span className="font-mono text-sm">MỤC TIÊU: {targetScore} điểm</span>
-                </div>
+                {/* Timer & Info */}
+                <div className="flex items-center gap-4 bg-slate-900/60 px-6 py-2 rounded-full border border-white/10 flex-shrink-0 flex-wrap justify-center">
+                    <div className={cn("flex items-center gap-2", timeLeft < 30 ? "text-rose-400 animate-pulse" : "text-amber-400")}>
+                        <Clock className="w-4 h-4" />
+                        <span className="font-mono font-bold text-lg">{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
+                    </div>
+                    <div className="w-px h-6 bg-white/10" />
+                    <div className="flex items-center gap-2 text-violet-400">
+                        <Target className="w-4 h-4" />
+                        <span className="font-mono text-sm">MỤC TIÊU: {targetScore} điểm</span>
+                    </div>
                 {comboMultiplier > 1 && (
                     <>
                         <div className="w-px h-6 bg-white/10" />
@@ -914,7 +973,7 @@ export default function Match3Game() {
 
 
             {/* Game Board */}
-            <div className="relative">
+            <div className="relative flex-shrink-0">
                 <div className={cn(
                     "absolute -inset-3 rounded-3xl blur-2xl transition-all duration-500",
                     gameStatus === "win" && "bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 animate-pulse",
@@ -930,7 +989,7 @@ export default function Match3Game() {
                     )}
                     style={{
                         gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
-                        width: 'min(90vw, 65vh)',
+                        width: 'min(80vw, 50vh, 600px)',
                         aspectRatio: '1/1'
                     }}
                 >
@@ -1004,7 +1063,7 @@ export default function Match3Game() {
             <Button
                 onClick={handleSave}
                 disabled={isSaving || !gameStarted || gameStatus !== "playing"}
-                className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all"
+                className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-6 py-2 rounded-xl flex items-center gap-2 transition-all flex-shrink-0"
             >
                 {isSaving ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -1014,8 +1073,10 @@ export default function Match3Game() {
                 {isSaving ? "Đang lưu..." : "Lưu Game"}
             </Button>
 
-            {/* Exit Dialog */}
-            <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        </div>
+
+        {/* Exit Dialog */}
+        <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
                 <AlertDialogContent className="bg-slate-900 border-slate-700">
                     <AlertDialogHeader>
                         <AlertDialogTitle className="text-white">Tạm dừng game</AlertDialogTitle>
@@ -1030,6 +1091,29 @@ export default function Match3Game() {
                         </AlertDialogCancel>
                         <AlertDialogAction onClick={handleExitGameWithSave} className="bg-emerald-600 hover:bg-emerald-500">
                             Lưu & thoát
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Navigation Guard Dialog */}
+            <AlertDialog open={showNavigationDialog} onOpenChange={setShowNavigationDialog}>
+                <AlertDialogContent className="bg-slate-900 border-slate-700 text-white">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Bạn đang có trận đấu dở</AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-300">
+                            Bạn có muốn lưu trận đấu hiện tại trước khi rời đi không?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
+                        <Button onClick={handleCancelNavigation} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800">
+                            Ở lại tiếp tục
+                        </Button>
+                        <AlertDialogCancel onClick={handleNavigationWithoutSave} className="bg-slate-800 text-white hover:bg-slate-700">
+                            Rời đi không lưu
+                        </AlertDialogCancel>
+                        <AlertDialogAction onClick={handleNavigationWithSave} className="bg-emerald-600 hover:bg-emerald-500">
+                            Lưu và rời đi
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

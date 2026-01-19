@@ -74,9 +74,37 @@ export default function TicTacToeGame() {
     const [isLoadingSession, setIsLoadingSession] = useState(false);
     const [showInstructions, setShowInstructions] = useState(false);
     const [showExitDialog, setShowExitDialog] = useState(false);
+    const [showNavigationDialog, setShowNavigationDialog] = useState(false);
+    const [pendingNavigation, setPendingNavigation] = useState(null);
 
     const timerRef = useRef();
     const elapsedRef = useRef();
+    const isNavigatingRef = useRef(false);
+
+    // --- NAVIGATION GUARD ---
+    useEffect(() => {
+        const shouldBlock = gameStarted && !gameEnded && !isNavigatingRef.current;
+        
+        const handleClick = (e) => {
+            if (!shouldBlock) return;
+            
+            const target = e.target.closest('a[href]');
+            if (target && target.getAttribute('href') !== window.location.pathname) {
+                e.preventDefault();
+                e.stopPropagation();
+                setPendingNavigation(target.getAttribute('href'));
+                setShowNavigationDialog(true);
+            }
+        };
+
+        if (shouldBlock) {
+            document.addEventListener('click', handleClick, true);
+        }
+
+        return () => {
+            document.removeEventListener('click', handleClick, true);
+        };
+    }, [gameStarted, gameEnded]);
 
     // --- 1. FETCH CONFIG ---
     useEffect(() => {
@@ -380,6 +408,28 @@ export default function TicTacToeGame() {
         }
     };
 
+    const handleNavigationWithSave = async () => {
+        if (pendingNavigation) {
+            await handleSave();
+            isNavigatingRef.current = true;
+            setShowNavigationDialog(false);
+            navigate(pendingNavigation);
+        }
+    };
+
+    const handleNavigationWithoutSave = () => {
+        if (pendingNavigation) {
+            isNavigatingRef.current = true;
+            setShowNavigationDialog(false);
+            navigate(pendingNavigation);
+        }
+    };
+
+    const handleCancelNavigation = () => {
+        setShowNavigationDialog(false);
+        setPendingNavigation(null);
+    };
+
     const handleExitWithSave = async () => {
         await handleSave();
         setShowExitDialog(false);
@@ -588,75 +638,77 @@ export default function TicTacToeGame() {
     // --- TIME SELECTION SCREEN ---
     if (!gameStarted && !gameEnded) {
         return (
-            <div className="flex flex-col items-center gap-6 w-full max-w-2xl">
-                <div className="text-center">
-                    <h2 className="text-3xl font-black text-white mb-2 tracking-tight">TIC TAC TOE</h2>
+            <div className="flex flex-col items-center gap-6 w-full h-full justify-center px-4 overflow-y-auto py-6">
+                <div className="flex flex-col items-center gap-6 w-full max-w-2xl">
+                    <div className="text-center">
+                        <h2 className="text-3xl font-black text-white mb-2 tracking-tight">TIC TAC TOE</h2>
+                    </div>
+
+                    <div className="flex gap-4 flex-wrap justify-center">
+                        {times.map((t, idx) => (
+                            <button
+                                key={idx}
+                                onClick={() => setSelectedTimeOption(idx)}
+                                className={cn(
+                                    "px-8 py-6 rounded-2xl border-2 transition-all duration-300 flex flex-col items-center gap-2",
+                                    selectedTimeOption === idx
+                                        ? "bg-red-500/20 border-red-500 scale-110 shadow-lg shadow-red-500/30"
+                                        : "bg-slate-900/60 border-slate-700 hover:border-slate-500"
+                                )}
+                            >
+                                <Clock className={cn("w-8 h-8", selectedTimeOption === idx ? "text-red-400" : "text-slate-400")} />
+                                <span className={cn("text-2xl font-black", selectedTimeOption === idx ? "text-red-400" : "text-slate-300")}>
+                                    {t} phút
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                    <Button onClick={handleLoad} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800 px-8 py-4 rounded-xl" disabled={isLoadingSession}>
+                        {isLoadingSession ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+                        Tiếp tục game đã lưu
+                    </Button>
+
+                    <AlertDialog open={showInstructions} onOpenChange={setShowInstructions}>
+                        <AlertDialogContent className="bg-slate-900 border-slate-700">
+                            <AlertDialogHeader>
+                                <AlertDialogTitle className="text-white flex items-center gap-2">
+                                    <HelpCircle className="w-5 h-5 text-yellow-400" />
+                                    Hướng dẫn chơi Tic Tac Toe
+                                </AlertDialogTitle>
+                                <AlertDialogDescription asChild>
+                                    <div className="space-y-4 text-slate-300 mt-4">
+                                        {GAME_INSTRUCTIONS.map((item, idx) => (
+                                            <div key={idx} className="border-l-2 border-blue-500 pl-3">
+                                                <h4 className="text-white font-bold text-sm uppercase mb-1">
+                                                    {idx + 1}. {item.title}
+                                                </h4>
+                                                <p className="text-xs leading-relaxed text-slate-400">
+                                                    {item.content}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogAction className="bg-red-600 hover:bg-red-500">Đã hiểu</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+
+                    <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+                        <AlertDialogContent className="bg-slate-900 border-slate-700">
+                            <AlertDialogHeader>
+                                <AlertDialogTitle className="text-white">Lưu game trước khi thoát?</AlertDialogTitle>
+                                <AlertDialogDescription>Bạn có muốn lưu tiến trình game hiện tại không?</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel onClick={handleExitWithoutSave} className="bg-slate-800 text-white hover:bg-slate-700">Không lưu</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleExitWithSave} className="bg-emerald-600 hover:bg-emerald-500">Lưu và thoát</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </div>
-
-                <div className="flex gap-4">
-                    {times.map((t, idx) => (
-                        <button
-                            key={idx}
-                            onClick={() => setSelectedTimeOption(idx)}
-                            className={cn(
-                                "px-8 py-6 rounded-2xl border-2 transition-all duration-300 flex flex-col items-center gap-2",
-                                selectedTimeOption === idx
-                                    ? "bg-red-500/20 border-red-500 scale-110 shadow-lg shadow-red-500/30"
-                                    : "bg-slate-900/60 border-slate-700 hover:border-slate-500"
-                            )}
-                        >
-                            <Clock className={cn("w-8 h-8", selectedTimeOption === idx ? "text-red-400" : "text-slate-400")} />
-                            <span className={cn("text-2xl font-black", selectedTimeOption === idx ? "text-red-400" : "text-slate-300")}>
-                                {t} phút
-                            </span>
-                        </button>
-                    ))}
-                </div>
-                <Button onClick={handleLoad} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800 px-8 py-4 rounded-xl" disabled={isLoadingSession}>
-                    {isLoadingSession ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
-                    Tiếp tục game đã lưu
-                </Button>
-
-                <AlertDialog open={showInstructions} onOpenChange={setShowInstructions}>
-                    <AlertDialogContent className="bg-slate-900 border-slate-700">
-                        <AlertDialogHeader>
-                            <AlertDialogTitle className="text-white flex items-center gap-2">
-                                <HelpCircle className="w-5 h-5 text-yellow-400" />
-                                Hướng dẫn chơi Tic Tac Toe
-                            </AlertDialogTitle>
-                            <AlertDialogDescription asChild>
-                                <div className="space-y-4 text-slate-300 mt-4">
-                                    {GAME_INSTRUCTIONS.map((item, idx) => (
-                                        <div key={idx} className="border-l-2 border-blue-500 pl-3">
-                                            <h4 className="text-white font-bold text-sm uppercase mb-1">
-                                                {idx + 1}. {item.title}
-                                            </h4>
-                                            <p className="text-xs leading-relaxed text-slate-400">
-                                                {item.content}
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogAction className="bg-red-600 hover:bg-red-500">Đã hiểu</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-
-                <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-                    <AlertDialogContent className="bg-slate-900 border-slate-700">
-                        <AlertDialogHeader>
-                            <AlertDialogTitle className="text-white">Lưu game trước khi thoát?</AlertDialogTitle>
-                            <AlertDialogDescription>Bạn có muốn lưu tiến trình game hiện tại không?</AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel onClick={handleExitWithoutSave} className="bg-slate-800 text-white hover:bg-slate-700">Không lưu</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleExitWithSave} className="bg-emerald-600 hover:bg-emerald-500">Lưu và thoát</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
             </div>
         );
     }
@@ -664,25 +716,27 @@ export default function TicTacToeGame() {
     // --- GAME END SCREEN ---
     if (gameEnded) {
         return (
-            <div className="flex flex-col items-center gap-8 w-full max-w-lg">
-                <div className={cn(
-                    "p-10 rounded-3xl border-2 flex flex-col items-center gap-6",
-                    totalScore > 0 ? "bg-emerald-900/30 border-emerald-500/50" : "bg-rose-900/30 border-rose-500/50"
-                )}>
-                    <div className={cn("w-24 h-24 rounded-full flex items-center justify-center", totalScore > 0 ? "bg-emerald-500/20" : "bg-rose-500/20")}>
-                        {totalScore > 0 ? <Trophy className="w-12 h-12 text-emerald-400" /> : <Frown className="w-12 h-12 text-rose-400" />}
+            <div className="flex flex-col items-center justify-center w-full h-full px-4 overflow-y-auto py-6">
+                <div className="flex flex-col items-center gap-8 w-full max-w-lg">
+                    <div className={cn(
+                        "p-10 rounded-3xl border-2 flex flex-col items-center gap-6",
+                        totalScore > 0 ? "bg-emerald-900/30 border-emerald-500/50" : "bg-rose-900/30 border-rose-500/50"
+                    )}>
+                        <div className={cn("w-24 h-24 rounded-full flex items-center justify-center", totalScore > 0 ? "bg-emerald-500/20" : "bg-rose-500/20")}>
+                            {totalScore > 0 ? <Trophy className="w-12 h-12 text-emerald-400" /> : <Frown className="w-12 h-12 text-rose-400" />}
+                        </div>
+                        <div className="text-center">
+                            <h2 className="text-4xl font-black text-white mb-2">HẾT GIỜ!</h2>
+                            <p className="text-slate-400">Bạn đã chơi {roundsPlayed} ván</p>
+                        </div>
+                        <div className="bg-slate-950/50 px-8 py-4 rounded-2xl">
+                            <span className="text-slate-400 text-sm">TỔNG ĐIỂM</span>
+                            <p className="text-5xl font-black text-white">{totalScore}</p>
+                        </div>
+                        <Button onClick={() => { setGameStarted(false); setGameEnded(false); }} className="bg-violet-600 hover:bg-violet-500 text-white font-bold px-12 py-6 rounded-2xl text-lg">
+                            CHƠI LẠI
+                        </Button>
                     </div>
-                    <div className="text-center">
-                        <h2 className="text-4xl font-black text-white mb-2">HẾT GIỜ!</h2>
-                        <p className="text-slate-400">Bạn đã chơi {roundsPlayed} ván</p>
-                    </div>
-                    <div className="bg-slate-950/50 px-8 py-4 rounded-2xl">
-                        <span className="text-slate-400 text-sm">TỔNG ĐIỂM</span>
-                        <p className="text-5xl font-black text-white">{totalScore}</p>
-                    </div>
-                    <Button onClick={() => { setGameStarted(false); setGameEnded(false); }} className="bg-violet-600 hover:bg-violet-500 text-white font-bold px-12 py-6 rounded-2xl text-lg">
-                        CHƠI LẠI
-                    </Button>
                 </div>
             </div>
         );
@@ -690,114 +744,139 @@ export default function TicTacToeGame() {
 
     // --- MAIN GAME SCREEN ---
     return (
-        <div className="flex flex-col items-center gap-4 w-full max-w-2xl h-full px-4 py-2 justify-center">
+        <div className="flex flex-col items-center w-full h-full overflow-hidden">
+            <div className="flex flex-col items-center gap-3 w-full h-full max-w-3xl px-4 py-4 overflow-y-auto">
 
-            <div className="grid grid-cols-4 w-full gap-3">
-                <StatBox label="ĐIỂM" value={totalScore} color="text-emerald-400" icon={<Target className="w-4 h-4" />} />
-                <StatBox label="VÁN" value={roundsPlayed} color="text-violet-400" icon={<Zap className="w-4 h-4" />} />
-                <StatBox label="THỜI GIAN" value={`${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`} color={timeLeft < 30 ? "text-rose-400 animate-pulse" : "text-amber-400"} icon={<Clock className="w-4 h-4" />} />
-                <div className="bg-slate-900/60 border border-white/5 p-2 rounded-xl flex items-center justify-center">
-                    <div className={cn("flex items-center gap-2", isXNext ? "text-red-400" : "text-blue-400")}>
-                        {isXNext ? <User className="w-4 h-4" /> : <Cpu className="w-4 h-4" />}
-                        <span className="font-bold text-sm">{isXNext ? "Lượt bạn" : "Lượt máy"}</span>
-                        {!isXNext && !winner && <Loader2 className="w-3 h-3 animate-spin" />}
+                <div className="grid grid-cols-4 w-full gap-2 flex-shrink-0">
+                    <StatBox label="ĐIỂM" value={totalScore} color="text-emerald-400" icon={<Target className="w-4 h-4" />} />
+                    <StatBox label="VÁN" value={roundsPlayed} color="text-violet-400" icon={<Zap className="w-4 h-4" />} />
+                    <StatBox label="THỜI GIAN" value={`${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`} color={timeLeft < 30 ? "text-rose-400 animate-pulse" : "text-amber-400"} icon={<Clock className="w-4 h-4" />} />
+                    <div className="bg-slate-900/60 border border-white/5 p-2 rounded-xl flex items-center justify-center min-h-[60px]">
+                        <div className={cn("flex items-center gap-2", isXNext ? "text-red-400" : "text-blue-400")}>
+                            {isXNext ? <User className="w-4 h-4" /> : <Cpu className="w-4 h-4" />}
+                            <span className="font-bold text-xs">{isXNext ? "Lượt bạn" : "Lượt máy"}</span>
+                            {!isXNext && !winner && <Loader2 className="w-3 h-3 animate-spin" />}
+                        </div>
                     </div>
                 </div>
-            </div>
 
 
-            {/* Game Board */}
-            <div className="relative">
-                <div className="absolute -inset-4 bg-red-500/10 rounded-3xl blur-2xl" />
-                <div className="relative grid grid-cols-3 gap-3 bg-slate-900 p-4 rounded-2xl shadow-2xl border-4 border-slate-700"
-                    style={{ width: 'min(90vw, 70vh)', aspectRatio: '1/1' }}
-                >
-                    {board.map((cell, i) => (
-                        <div
-                            key={i}
-                            onClick={() => handleCellClick(i)}
-                            className={cn(
-                                "flex items-center justify-center rounded-xl transition-all duration-300 cursor-pointer border-2",
-                                cell === null && isXNext && !winner ? "bg-slate-800 hover:bg-slate-700 border-slate-700" : "border-transparent",
-                                cell === 'X' && "bg-red-500/20 border-red-500",
-                                cell === 'O' && "bg-blue-500/20 border-blue-500",
-                                hintCell === i && "ring-4 ring-yellow-400 animate-pulse",
-                                (!isXNext || winner) && cell === null && "opacity-70 cursor-not-allowed"
+                {/* Game Board */}
+                <div className="relative flex-shrink-0 w-full flex items-center justify-center" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+                    <div className="relative w-full max-w-sm" style={{ aspectRatio: '1/1' }}>
+                        <div className="absolute -inset-4 bg-red-500/10 rounded-3xl blur-2xl" />
+                        <div className="relative w-full h-full grid grid-cols-3 gap-2 bg-slate-900 p-3 rounded-2xl shadow-2xl border-4 border-slate-700">
+                            {board.map((cell, i) => (
+                                <div
+                                    key={i}
+                                    onClick={() => handleCellClick(i)}
+                                    className={cn(
+                                        "flex items-center justify-center rounded-xl transition-all duration-300 cursor-pointer border-2 aspect-square",
+                                        cell === null && isXNext && !winner ? "bg-slate-800 hover:bg-slate-700 border-slate-700" : "border-transparent",
+                                        cell === 'X' && "bg-red-500/20 border-red-500",
+                                        cell === 'O' && "bg-blue-500/20 border-blue-500",
+                                        hintCell === i && "ring-4 ring-yellow-400 animate-pulse",
+                                        (!isXNext || winner) && cell === null && "opacity-70 cursor-not-allowed"
+                                    )}
+                                >
+                                    {cell === 'X' && <X className="w-1/2 h-1/2 text-red-500" strokeWidth={3} />}
+                                    {cell === 'O' && <Circle className="w-1/2 h-1/2 text-blue-500" strokeWidth={4} />}
+                                </div>
+                            ))}
+
+                            {winner && (
+                                <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl z-20 animate-in fade-in zoom-in">
+                                    <div className={cn(
+                                        "p-6 rounded-2xl flex flex-col items-center gap-4",
+                                        winner === "X" ? "bg-emerald-900/50 border border-emerald-500/50" :
+                                            winner === "Draw" ? "bg-amber-900/50 border border-amber-500/50" :
+                                                "bg-rose-900/50 border border-rose-500/50"
+                                    )}>
+                                        <span className="text-5xl">{winner === "X" ? "🎉" : winner === "Draw" ? "🤝" : "💻"}</span>
+                                        <h3 className="text-2xl font-black text-white">
+                                            {winner === "X" ? "BẠN THẮNG!" : winner === "Draw" ? "HÒA!" : "MÁY THẮNG!"}
+                                        </h3>
+                                        <div className="text-3xl font-black text-emerald-400">+{roundScore}</div>
+                                        <Button onClick={handleNewRound} className="bg-violet-600 hover:bg-violet-500 text-white font-bold px-8 py-4 rounded-xl">
+                                            VÁN TIẾP THEO
+                                        </Button>
+                                    </div>
+                                </div>
                             )}
-                        >
-                            {cell === 'X' && <X className="w-1/2 h-1/2 text-red-500" strokeWidth={3} />}
-                            {cell === 'O' && <Circle className="w-1/2 h-1/2 text-blue-500" strokeWidth={4} />}
                         </div>
-                    ))}
-
-                    {winner && (
-                        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl z-20 animate-in fade-in zoom-in">
-                            <div className={cn(
-                                "p-6 rounded-2xl flex flex-col items-center gap-4",
-                                winner === "X" ? "bg-emerald-900/50 border border-emerald-500/50" :
-                                    winner === "Draw" ? "bg-amber-900/50 border border-amber-500/50" :
-                                        "bg-rose-900/50 border border-rose-500/50"
-                            )}>
-                                <span className="text-5xl">{winner === "X" ? "🎉" : winner === "Draw" ? "🤝" : "💻"}</span>
-                                <h3 className="text-2xl font-black text-white">
-                                    {winner === "X" ? "BẠN THẮNG!" : winner === "Draw" ? "HÒA!" : "MÁY THẮNG!"}
-                                </h3>
-                                <div className="text-3xl font-black text-emerald-400">+{roundScore}</div>
-                                <Button onClick={handleNewRound} className="bg-violet-600 hover:bg-violet-500 text-white font-bold px-8 py-4 rounded-xl">
-                                    VÁN TIẾP THEO
-                                </Button>
-                            </div>
-                        </div>
-                    )}
+                    </div>
                 </div>
+
+                {/* Save Game Button */}
+                <Button
+                    onClick={handleSave}
+                    disabled={isSaving || !gameStarted || gameEnded}
+                    className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-6 py-2 rounded-xl flex items-center gap-2 transition-all flex-shrink-0"
+                >
+                    {isSaving ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                        <Save className="w-5 h-5" />
+                    )}
+                    {isSaving ? "Đang lưu..." : "Lưu Game"}
+                </Button>
+
+
+                <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+                    <AlertDialogContent className="bg-slate-900 border-slate-700">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-white">Tạm dừng game</AlertDialogTitle>
+                            <AlertDialogDescription>Bạn muốn làm gì tiếp theo?</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
+                            <Button onClick={handleCancelExit} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800">
+                                Tiếp tục chơi
+                            </Button>
+                            <AlertDialogCancel onClick={handleExitGameWithoutSave} className="bg-slate-800 text-white hover:bg-slate-700">
+                                Thoát không lưu
+                            </AlertDialogCancel>
+                            <AlertDialogAction onClick={handleExitGameWithSave} className="bg-emerald-600 hover:bg-emerald-500">
+                                Lưu & thoát
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+
+                <AlertDialog open={showNavigationDialog} onOpenChange={setShowNavigationDialog}>
+                    <AlertDialogContent className="bg-slate-900 border-slate-700">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-white">Rời khỏi game đang chơi?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Bạn đang trong ván chơi dở. Bạn có muốn lưu tiến trình trước khi rời đi không?
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
+                            <Button onClick={handleCancelNavigation} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800">
+                                Ở lại tiếp tục
+                            </Button>
+                            <AlertDialogCancel onClick={handleNavigationWithoutSave} className="bg-slate-800 text-white hover:bg-slate-700">
+                                Rời đi không lưu
+                            </AlertDialogCancel>
+                            <AlertDialogAction onClick={handleNavigationWithSave} className="bg-emerald-600 hover:bg-emerald-500">
+                                Lưu và rời đi
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
-
-            {/* Save Game Button */}
-            <Button
-                onClick={handleSave}
-                disabled={isSaving || !gameStarted || gameEnded}
-                className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all"
-            >
-                {isSaving ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                    <Save className="w-5 h-5" />
-                )}
-                {isSaving ? "Đang lưu..." : "Lưu Game"}
-            </Button>
-
-
-            <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-                <AlertDialogContent className="bg-slate-900 border-slate-700">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle className="text-white">Tạm dừng game</AlertDialogTitle>
-                        <AlertDialogDescription>Bạn muốn làm gì tiếp theo?</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
-                        <Button onClick={handleCancelExit} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800">
-                            Tiếp tục chơi
-                        </Button>
-                        <AlertDialogCancel onClick={handleExitGameWithoutSave} className="bg-slate-800 text-white hover:bg-slate-700">
-                            Thoát không lưu
-                        </AlertDialogCancel>
-                        <AlertDialogAction onClick={handleExitGameWithSave} className="bg-emerald-600 hover:bg-emerald-500">
-                            Lưu & thoát
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
         </div>
     );
 }
 
 function StatBox({ label, value, color, icon }) {
     return (
-        <div className="bg-slate-900/60 border border-white/5 p-3 rounded-xl backdrop-blur-md flex flex-col items-center justify-center">
-            <div className={cn("flex items-center gap-1 mb-1", color)}>
+        <div className="bg-slate-900/60 border border-white/5 p-2 rounded-xl backdrop-blur-md flex flex-col items-center justify-center min-h-[60px]">
+            <div className={cn("flex items-center gap-1 mb-0.5", color)}>
                 {icon}
                 <span className="text-[9px] font-black tracking-wider">{label}</span>
             </div>
-            <span className={cn("text-lg font-mono font-black", color)}>{value}</span>
+            <span className={cn("text-base font-mono font-black", color)}>{value}</span>
         </div>
     );
 }
+

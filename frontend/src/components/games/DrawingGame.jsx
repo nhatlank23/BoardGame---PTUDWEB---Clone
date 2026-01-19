@@ -90,9 +90,36 @@ export default function DrawingGame() {
   const [isLoadingSession, setIsLoadingSession] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [showNavigationDialog, setShowNavigationDialog] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState(null);
 
   const timerRef = useRef();
   const elapsedRef = useRef();
+  const isNavigatingRef = useRef(false);
+
+  useEffect(() => {
+    const shouldBlock = gameStarted && !gameEnded && !isNavigatingRef.current;
+    
+    const handleClick = (e) => {
+      if (!shouldBlock) return;
+      
+      const target = e.target.closest('a[href]');
+      if (target && target.getAttribute('href') !== window.location.pathname) {
+        e.preventDefault();
+        e.stopPropagation();
+        setPendingNavigation(target.getAttribute('href'));
+        setShowNavigationDialog(true);
+      }
+    };
+
+    if (shouldBlock) {
+      document.addEventListener('click', handleClick, true);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClick, true);
+    };
+  }, [gameStarted, gameEnded]);
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -308,6 +335,28 @@ export default function DrawingGame() {
   const handleExitWithoutSave = () => {
     setShowExitDialog(false);
     navigate("/home");
+  };
+
+  const handleNavigationWithSave = async () => {
+    if (pendingNavigation) {
+      await handleSave();
+      isNavigatingRef.current = true;
+      setShowNavigationDialog(false);
+      navigate(pendingNavigation);
+    }
+  };
+
+  const handleNavigationWithoutSave = () => {
+    if (pendingNavigation) {
+      isNavigatingRef.current = true;
+      setShowNavigationDialog(false);
+      navigate(pendingNavigation);
+    }
+  };
+
+  const handleCancelNavigation = () => {
+    setShowNavigationDialog(false);
+    setPendingNavigation(null);
   };
 
   const handleLeft = () => {
@@ -574,51 +623,54 @@ export default function DrawingGame() {
 
   if (gameEnded) {
     return (
-      <div className="flex flex-col items-center gap-8 w-full max-w-lg">
-        <div className={cn(
-          "p-10 rounded-3xl border-2 flex flex-col items-center gap-6",
-          gameWon ? "bg-emerald-900/30 border-emerald-500/50" : "bg-rose-900/30 border-rose-500/50"
-        )}>
-          <div className={cn("w-24 h-24 rounded-full flex items-center justify-center", gameWon ? "bg-emerald-500/20" : "bg-rose-500/20")}>
-            {gameWon ? <Trophy className="w-12 h-12 text-emerald-400" /> : <Frown className="w-12 h-12 text-rose-400" />}
+      <div className="flex flex-col items-center justify-center w-full h-full px-4 overflow-y-auto py-6">
+        <div className="flex flex-col items-center gap-8 w-full max-w-lg">
+          <div className={cn(
+            "p-10 rounded-3xl border-2 flex flex-col items-center gap-6",
+            gameWon ? "bg-emerald-900/30 border-emerald-500/50" : "bg-rose-900/30 border-rose-500/50"
+          )}>
+            <div className={cn("w-24 h-24 rounded-full flex items-center justify-center", gameWon ? "bg-emerald-500/20" : "bg-rose-500/20")}>
+              {gameWon ? <Trophy className="w-12 h-12 text-emerald-400" /> : <Frown className="w-12 h-12 text-rose-400" />}
+            </div>
+            <div className="text-center">
+              <h2 className="text-4xl font-black text-white mb-2">{gameWon ? "HOÀN THÀNH!" : "HẾT GIỜ!"}</h2>
+              <p className="text-slate-400">Tiến độ: {progress}% | Lỗi: {mistakes}</p>
+            </div>
+            <div className="bg-slate-950/50 px-8 py-4 rounded-2xl text-center">
+              <span className="text-slate-400 text-sm">TỔNG ĐIỂM</span>
+              <p className="text-5xl font-black text-white">{score}</p>
+            </div>
+            <Button onClick={() => { setGameStarted(false); setGameEnded(false); }} className="bg-violet-600 hover:bg-violet-500 text-white font-bold px-12 py-6 rounded-2xl text-lg">
+              CHƠI LẠI
+            </Button>
           </div>
-          <div className="text-center">
-            <h2 className="text-4xl font-black text-white mb-2">{gameWon ? "HOÀN THÀNH!" : "HẾT GIỜ!"}</h2>
-            <p className="text-slate-400">Tiến độ: {progress}% | Lỗi: {mistakes}</p>
-          </div>
-          <div className="bg-slate-950/50 px-8 py-4 rounded-2xl text-center">
-            <span className="text-slate-400 text-sm">TỔNG ĐIỂM</span>
-            <p className="text-5xl font-black text-white">{score}</p>
-          </div>
-          <Button onClick={() => { setGameStarted(false); setGameEnded(false); }} className="bg-violet-600 hover:bg-violet-500 text-white font-bold px-12 py-6 rounded-2xl text-lg">
-            CHƠI LẠI
-          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center gap-3 w-full max-w-4xl h-full px-4 py-2 justify-center">
+    <div className="flex flex-col items-center w-full h-full px-4 py-4 overflow-y-auto">
+      <div className="flex flex-col items-center gap-3 w-full max-w-4xl">
 
-      <div className="grid grid-cols-4 w-full max-w-2xl gap-2">
-        <StatBox label="ĐIỂM" value={score} color="text-emerald-400" icon={<Target className="w-3 h-3" />} />
-        <StatBox label="TIẾN ĐỘ" value={`${progress}%`} color="text-violet-400" icon={<Sparkles className="w-3 h-3" />} />
-        <StatBox label="LỖI" value={mistakes} color="text-rose-400" icon={<Palette className="w-3 h-3" />} />
-        <StatBox label="THỜI GIAN" value={`${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`} color={timeLeft < 30 ? "text-rose-400 animate-pulse" : "text-amber-400"} icon={<Clock className="w-3 h-3" />} />
-      </div>
+        <div className="grid grid-cols-4 w-full max-w-2xl gap-2 flex-shrink-0">
+          <StatBox label="ĐIỂM" value={score} color="text-emerald-400" icon={<Target className="w-3 h-3" />} />
+          <StatBox label="TIẾN ĐỘ" value={`${progress}%`} color="text-violet-400" icon={<Sparkles className="w-3 h-3" />} />
+          <StatBox label="LỖI" value={mistakes} color="text-rose-400" icon={<Palette className="w-3 h-3" />} />
+          <StatBox label="THỜI GIAN" value={`${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`} color={timeLeft < 30 ? "text-rose-400 animate-pulse" : "text-amber-400"} icon={<Clock className="w-3 h-3" />} />
+        </div>
 
-      <div className="w-full max-w-2xl h-2 bg-slate-800 rounded-full overflow-hidden">
-        <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300" style={{ width: `${progress}%` }} />
-      </div>
+        <div className="w-full max-w-2xl h-2 bg-slate-800 rounded-full overflow-hidden flex-shrink-0">
+          <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300" style={{ width: `${progress}%` }} />
+        </div>
 
 
 
-      <div className="relative">
-        <div className="absolute -inset-4 bg-emerald-500/10 rounded-3xl blur-2xl" />
-        <div
-          className="relative grid gap-1 bg-slate-950 p-3 rounded-2xl shadow-2xl border-4 border-slate-700"
-          style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`, width: 'min(90vw, 60vh)', aspectRatio: '1/1' }}
+        <div className="relative flex-shrink-0">
+          <div className="absolute -inset-4 bg-emerald-500/10 rounded-3xl blur-2xl" />
+          <div
+            className="relative grid gap-1 bg-slate-950 p-3 rounded-2xl shadow-2xl border-4 border-slate-700"
+            style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`, width: 'min(80vw, 50vh, 600px)', aspectRatio: '1/1' }}
         >
           {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => {
             const isPattern = pattern.includes(i);
@@ -648,7 +700,7 @@ export default function DrawingGame() {
       <Button
         onClick={handleSave}
         disabled={isSaving || !gameStarted || gameEnded}
-        className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all"
+        className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-6 py-2 rounded-xl flex items-center gap-2 transition-all flex-shrink-0"
       >
         {isSaving ? (
           <Loader2 className="w-5 h-5 animate-spin" />
@@ -658,7 +710,9 @@ export default function DrawingGame() {
         {isSaving ? "Đang lưu..." : "Lưu Game"}
       </Button>
 
-      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+    </div>
+
+    <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
         <AlertDialogContent className="bg-slate-900 border-slate-700">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">Tạm dừng game</AlertDialogTitle>
@@ -677,13 +731,35 @@ export default function DrawingGame() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={showNavigationDialog} onOpenChange={setShowNavigationDialog}>
+        <AlertDialogContent className="bg-slate-900 border-slate-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Rời khỏi game đang chơi?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn đang trong ván chơi dở. Bạn có muốn lưu tiến trình trước khi rời đi không?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button onClick={handleCancelNavigation} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800">
+              Ở lại tiếp tục
+            </Button>
+            <AlertDialogCancel onClick={handleNavigationWithoutSave} className="bg-slate-800 text-white hover:bg-slate-700">
+              Rời đi không lưu
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleNavigationWithSave} className="bg-emerald-600 hover:bg-emerald-500">
+              Lưu và rời đi
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
 function StatBox({ label, value, color, icon }) {
   return (
-    <div className="bg-slate-900/60 border border-white/5 p-2 rounded-xl backdrop-blur-md flex flex-col items-center justify-center">
+    <div className="bg-slate-900/60 border border-white/5 p-2 rounded-xl backdrop-blur-md flex flex-col items-center justify-center min-h-[60px]">
       <div className={cn("flex items-center gap-1 mb-0.5", color)}>
         {icon}
         <span className="text-[8px] font-black tracking-wider">{label}</span>
