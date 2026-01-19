@@ -9,4 +9,6 @@ router.use(authMiddleware);
 // Users search endpoint
 router.get("/:game_id", leaderboardController.getTopGamersByGameId);
 
+router.get("/:game_id/friends", leaderboardController.getTopRankingOfFriendById);
+
 module.exports = router;
