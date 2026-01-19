@@ -16,13 +16,7 @@ module.exports = {
       if (!gameId) {
         return res.status(400).json({ status: "error", message: "Game ID is required" });
       }
-
-      let leaderboards;
-      if (gameId === "all") {
-        leaderboards = await leaderboardsModel.getTopGamers();
-      } else {
-        leaderboards = await leaderboardsModel.getTopGamersByGameId(gameId);
-      }
+      const leaderboards = await leaderboardsModel.getTopGamersByGameId(gameId);
 
       return res.json({ status: "success", data: leaderboards });
     } catch (err) {

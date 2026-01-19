@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Toast } from "../components/ui/toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trophy, Medal, Award } from "lucide-react";
@@ -12,10 +13,11 @@ import { gameService } from "../services/gameService";
 import { rankingService } from "../services/rankingService";
 
 export default function RankingPage() {
-  const [selectedGame, setSelectedGame] = useState("all");
+  const [selectedGame, setSelectedGame] = useState("");
   const [loading, setLoading] = useState(false);
   const [allGames, setAllGames] = useState([]);
   const [leaderboards, setLeaderboards] = useState([]);
+  const [friendLeaderboards, setFriendLeaderboard] = useState([]);
 
   // const topPlayers = [
   //   {
@@ -89,10 +91,10 @@ export default function RankingPage() {
         if (response.status === "success") {
           setAllGames(response.data);
         } else {
-          toast({ title: "Lỗi", description: "Không tải được dữ liệu game", variant: "destructive" });
+          Toast({ title: "Lỗi", description: "Không tải được dữ liệu game", variant: "destructive" });
         }
       } catch (error) {
-        toast({ title: "Lỗi kết nối", description: "Vui lòng kiểm tra API", variant: "destructive" });
+        Toast({ title: "Lỗi kết nối", description: "Vui lòng kiểm tra API", variant: "destructive" });
       }
     };
 
@@ -107,17 +109,36 @@ export default function RankingPage() {
         if (response.status === "success") {
           setLeaderboards(response.data);
         } else {
-          toast({ title: "Lỗi", description: "Không tải được dữ liệu bảng xếp hạng", variant: "destructive" });
+          Toast({ title: "Lỗi", description: "Không tải được dữ liệu bảng xếp hạng", variant: "destructive" });
         }
       } catch (error) {
-        toast({ title: "Lỗi kết nối", description: "Vui lòng kiểm tra API", variant: "destructive" });
+        Toast({ title: "Lỗi kết nối", description: "Vui lòng kiểm tra API", variant: "destructive" });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchFriendLeaderboards = async () => {
+      try {
+        setLoading(true);
+        const response = await rankingService.getTopFriendLeaderBoard(selectedGame);
+        if (response.status === "success") {
+          setFriendLeaderboard(response.data);
+        } else {
+          Toast({ title: "Lỗi", description: "Không tải được dữ liệu bảng xếp hạng", variant: "destructive" });
+        }
+      } catch (error) {
+        Toast({ title: "Lỗi kết nối", description: "Vui lòng kiểm tra API", variant: "destructive" });
       } finally {
         setLoading(false);
       }
     };
 
     fetchLeaderboards();
+    fetchFriendLeaderboards();
   }, [selectedGame]);
+
+  console.log(friendLeaderboards);
 
   return (
     <div className="min-h-screen">
@@ -137,7 +158,6 @@ export default function RankingPage() {
                 <SelectValue placeholder="Chọn game" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tất cả game</SelectItem>
                 {allGames.map((game, i) => (
                   <SelectItem key={i} value={game.id}>
                     {game.name}
@@ -173,26 +193,25 @@ export default function RankingPage() {
                         <div className="w-8 flex justify-center">{getRankIcon(i + 1)}</div>
                         <Avatar>
                           <AvatarImage src={leaderboard.avatar_url || "/placeholder.svg"} />
-                          <AvatarFallback>{leaderboard.username[0]}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                          <div className="font-semibold">{leaderboard.username}</div>
+                          <div className="font-semibold">{leaderboard.name}</div>
                           <div className="text-sm text-muted-foreground">{leaderboard.wins ?? 0} trận thắng</div>
                         </div>
                         <div className="text-right">
-                          <div className="text-2xl font-bold">{leaderboard.high_score}</div>
-                          <div className="text-xs text-muted-foreground">điểm</div>
+                          <>
+                            {leaderboard.avg_score === 1 || leaderboard.avg_score === -1 ? (
+                              <>
+                                <div className="text-2xl font-bold">{leaderboard.win_rate ?? 0}%</div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="text-2xl font-bold">{leaderboard.avg_score}</div>
+                                <div className="text-xs text-muted-foreground">điểm</div>
+                              </>
+                            )}
+                          </>
                         </div>
-                        {leaderboard.trend === "up" && (
-                          <Badge variant="secondary" className="bg-green-500/10 text-green-500">
-                            ↑
-                          </Badge>
-                        )}
-                        {leaderboard.trend === "down" && (
-                          <Badge variant="secondary" className="bg-red-500/10 text-red-500">
-                            ↓
-                          </Badge>
-                        )}
                       </Link>
                     ))}
                   </div>
@@ -207,7 +226,41 @@ export default function RankingPage() {
                   <CardDescription>Xếp hạng của bạn bè</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-center text-muted-foreground py-8">Chưa có dữ liệu xếp hạng bạn bè</p>
+                  <div className="space-y-3">
+                    {friendLeaderboards.map((leaderboard, i) => (
+                      <Link
+                        key={i}
+                        to="/profile"
+                        // Todo: kiểm tra user hiện tại có trên bảng không
+                        className={`flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-md ${
+                          false ? "bg-primary/5 border-primary" : "hover:bg-accent"
+                        }`}
+                      >
+                        <div className="w-8 flex justify-center">{getRankIcon(i + 1)}</div>
+                        <Avatar>
+                          <AvatarImage src={leaderboard.avatar_url || "/placeholder.svg"} />
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="font-semibold">{leaderboard.name}</div>
+                          <div className="text-sm text-muted-foreground">{leaderboard.wins ?? 0} trận thắng</div>
+                        </div>
+                        <div className="text-right">
+                          <>
+                            {leaderboard.avg_score === 1 || leaderboard.avg_score === -1 ? (
+                              <>
+                                <div className="text-2xl font-bold">{leaderboard.win_rate ?? 0}%</div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="text-2xl font-bold">{leaderboard.avg_score}</div>
+                                <div className="text-xs text-muted-foreground">điểm</div>
+                              </>
+                            )}
+                          </>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
