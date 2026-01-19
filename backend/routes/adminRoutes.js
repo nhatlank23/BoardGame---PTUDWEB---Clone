@@ -7,14 +7,82 @@ const authMiddleware = require("../middlewares/authMiddleware");
 // Apply auth middleware to all routes
 router.use(authMiddleware);
 
-// Get all users (admin only)
+/**
+ * @openapi
+ * /api/admin/users:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Lấy danh sách tất cả người dùng (Admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Số trang
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Số lượng mỗi trang
+ *     responses:
+ *       200:
+ *         description: Danh sách người dùng
+ *       403:
+ *         description: Không có quyền truy cập
+ */
 router.get("/users", AdminController.getAllUsers);
 
-// Ban a user (admin only)
+/**
+ * @openapi
+ * /api/admin/users/{id}/ban:
+ *   patch:
+ *     tags: [Admin]
+ *     summary: Ban/Unban người dùng (Admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID người dùng
+ *     responses:
+ *       200:
+ *         description: Cập nhật trạng thái thành công
+ *       403:
+ *         description: Không có quyền truy cập
+ */
 router.patch("/users/:id/ban", AdminController.toggleBanUser);
 
-// Stats endpoints
+/**
+ * @openapi
+ * /api/admin/stats/games-played:
+ *   get:
+ *     tags: [Admin - Stats]
+ *     summary: Thống kê số lượng game đã chơi (Admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Thống kê game
+ */
 router.get("/stats/games-played", AdminController.getGamesPlayed);
+
+/**
+ * @openapi
+ * /api/admin/stats/hourly-activity:
+ *   get:
+ *     tags: [Admin - Stats]
+ *     summary: Thống kê hoạt động theo giờ (Admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Thống kê hoạt động
+ */
 router.get("/stats/hourly-activity", AdminController.getHourlyActivity);
 
 module.exports = router;

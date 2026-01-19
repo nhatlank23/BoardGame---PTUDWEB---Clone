@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, UserPlus, Check, X, MessageCircle } from "lucide-react";
 import { friendService } from "@/services/friendService";
+import { profileService } from "@/services/profileService";
 import { useToast } from "@/hooks/use-toast";
 
 export default function FriendsPage() {
@@ -22,13 +23,29 @@ export default function FriendsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   // Load friends on mount
   useEffect(() => {
     loadFriends();
     loadFriendRequests();
     loadSentRequests();
+    fetchCurrentUser();
   }, []);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const resp = await profileService.getMe();
+      console.log("Current user response:", resp);
+      if (resp && resp.data) {
+        const userId = resp.data.user?.id || resp.data.id;
+        console.log("Setting currentUserId:", userId);
+        setCurrentUserId(userId);
+      }
+    } catch (err) {
+      console.error("Error fetching current user:", err);
+    }
+  };
 
   const loadFriends = async () => {
     try {
@@ -83,9 +100,20 @@ export default function FriendsPage() {
 
     try {
       setIsSearching(true);
+      console.log("Searching with currentUserId:", currentUserId);
       const response = await friendService.searchUsers(searchQuery);
+      console.log("Search response:", response);
+
       if (response.data) {
-        setSearchResults(response.data);
+        const results = Array.isArray(response.data) ? response.data : response.data.data || [];
+        console.log("Results before filter:", results);
+        console.log("Current user ID for filtering:", currentUserId);
+
+        // Double-check filter - exclude current user
+        const filtered = results.filter((u) => u.id !== currentUserId);
+        console.log("Results after filter:", filtered);
+
+        setSearchResults(filtered);
       }
     } catch (error) {
       console.error("Error searching users:", error);
@@ -193,8 +221,8 @@ export default function FriendsPage() {
 
   // Navigate to messages page with selected friend
   const handleMessageClick = (friend) => {
-    navigate('/messages', { 
-      state: { selectedFriend: friend }
+    navigate("/messages", {
+      state: { selectedFriend: friend },
     });
   };
 

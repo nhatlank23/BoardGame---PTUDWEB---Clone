@@ -13,7 +13,7 @@ app.use(
   cors({
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
     credentials: true,
-  }),
+  })
 );
 // api-docs - xem ở trang: http://localhost:3000/api-docs
 const swaggerAuth = (req, res, next) => {
@@ -31,21 +31,38 @@ const swaggerOptions = {
     info: {
       title: "Đồ án web - API Documentation",
       version: "1.0.0",
-      description: "Tài liệu API",
+      description: "Tài liệu API đầy đủ cho hệ thống game online",
     },
     servers: [{ url: `http://localhost:${process.env.PORT || 3000}` }],
+    tags: [
+      { name: "Auth", description: "API xác thực và quản lý phiên đăng nhập" },
+      { name: "Users", description: "API quản lý thông tin người dùng" },
+      { name: "Users - Friends", description: "API quản lý bạn bè" },
+      { name: "Users - Messages", description: "API tin nhắn" },
+      {
+        name: "Users - Stats",
+        description: "API thống kê và lịch sử người dùng",
+      },
+      { name: "Games", description: "API quản lý game" },
+      { name: "Game Sessions", description: "API quản lý phiên chơi game" },
+      { name: "Admin", description: "API quản trị hệ thống" },
+      { name: "Admin - Stats", description: "API thống kê cho admin" },
+      { name: "Leaderboard", description: "API bảng xếp hạng" },
+    ],
     components: {
       securitySchemes: {
         ApiKeyAuth: {
           type: "apiKey",
           in: "header",
           name: "x-api-key",
-          description: "Nhập mã: api_9f3c2b7a8d4e6a1f5c0e9b2d7a4c8e6f1b0d9a3e5c7f2a8b4d6c0e1",
+          description:
+            "Nhập mã: api_9f3c2b7a8d4e6a1f5c0e9b2d7a4c8e6f1b0d9a3e5c7f2a8b4d6c0e1",
         },
         bearerAuth: {
           type: "http",
           scheme: "bearer",
           bearerFormat: "JWT",
+          description: "Nhập JWT token nhận được từ endpoint /api/auth/login",
         },
       },
       schemas: {
@@ -58,6 +75,8 @@ const swaggerOptions = {
             role: { type: "string", enum: ["player", "admin"] },
             avatar_url: { type: "string", nullable: true },
             is_banned: { type: "boolean" },
+            created_at: { type: "string", format: "date-time" },
+            updated_at: { type: "string", format: "date-time" },
           },
         },
         Game: {
@@ -66,8 +85,23 @@ const swaggerOptions = {
             id: { type: "integer" },
             slug: { type: "string" },
             name: { type: "string" },
+            description: { type: "string" },
             config: { type: "object" },
             is_active: { type: "boolean" },
+            created_at: { type: "string", format: "date-time" },
+          },
+        },
+        GameSession: {
+          type: "object",
+          properties: {
+            id: { type: "integer" },
+            user_id: { type: "integer" },
+            game_id: { type: "integer" },
+            state: { type: "object" },
+            score: { type: "number" },
+            duration: { type: "integer" },
+            created_at: { type: "string", format: "date-time" },
+            updated_at: { type: "string", format: "date-time" },
           },
         },
         Error: {
@@ -77,19 +111,40 @@ const swaggerOptions = {
             message: { type: "string" },
           },
         },
-        security: [
-          {
-            ApiKeyAuth: [],
-            bearerAuth: [],
+      },
+      responses: {
+        UnauthorizedError: {
+          description: "Token không hợp lệ hoặc đã hết hạn",
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/Error",
+              },
+            },
           },
-        ],
+        },
+        ForbiddenError: {
+          description: "Không có quyền truy cập",
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/Error",
+              },
+            },
+          },
+        },
       },
     },
   },
   apis: ["./routes/*.js"],
 };
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
-app.use("/api-docs", swaggerAuth, swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+app.use(
+  "/api-docs",
+  swaggerAuth,
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocs)
+);
 
 app.get("/", (req, res) => {
   res.json({

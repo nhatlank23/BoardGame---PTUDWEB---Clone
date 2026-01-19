@@ -12,12 +12,22 @@ module.exports = {
       }
 
       const term = `%${String(q).trim()}%`;
+      const currentUserId = req.user?.id || req.userId;
 
-      const rows = await db("users")
-        .where("username", "ilike", term)
-        .orWhere("email", "ilike", term)
+      let query = db("users")
+        .where(function() {
+          this.where("username", "ilike", term)
+            .orWhere("email", "ilike", term);
+        })
         .select("id", "username", "email", "avatar_url")
         .limit(10);
+
+      if (currentUserId) {
+        // Exclude the requesting user's own account from results
+        query = query.whereNot("id", currentUserId);
+      }
+
+      const rows = await query;
 
       const users = rows.map((r) => ({
         id: r.id,

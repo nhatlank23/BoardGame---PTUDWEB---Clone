@@ -2,6 +2,7 @@ const UserModel = require("../models/userModel");
 const { generateToken } = require("../configs/auth");
 const { generateOTP, sendOTPEmail } = require("../configs/email");
 const { saveOTP, checkOTP, verifyOTP } = require("../configs/otpStore");
+const db = require("../configs/db");
 
 class AuthController {
   // POST /api/auth/send-register-otp - Gửi OTP xác thực đăng ký
@@ -176,6 +177,9 @@ class AuthController {
         role: "player",
       });
 
+      // Set user status to Online
+      await db("users").where("id", user.id).update({ status: "Online" });
+
       // Generate JWT token
       const token = generateToken({
         id: user.id,
@@ -255,6 +259,9 @@ class AuthController {
         });
       }
 
+      // Set user status to Online
+      await db("users").where("id", user.id).update({ status: "Online" });
+
       // Generate JWT token
       const token = generateToken({
         id: user.id,
@@ -317,9 +324,10 @@ class AuthController {
   // POST /api/auth/logout - Đăng xuất (client sẽ xóa token)
   static async logout(req, res) {
     try {
-      // Với JWT stateless, logout chủ yếu xử lý ở client (xóa token)
-      // Server chỉ trả response thành công
-      // Có thể log hoạt động logout nếu cần
+      // Set user status to Offline
+      if (req.user && req.user.id) {
+        await db("users").where("id", req.user.id).update({ status: "Offline" });
+      }
 
       res.status(200).json({
         status: "success",

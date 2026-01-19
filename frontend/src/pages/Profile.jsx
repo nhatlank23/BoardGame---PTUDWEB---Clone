@@ -351,15 +351,25 @@ const ProfilePage = () => {
                       // Xác định cách hiển thị score
                       let scoreDisplay = null;
                       if (match.score !== null && match.score !== undefined) {
-                        if (match.score === -1) {
-                          scoreDisplay = <p className="text-lg font-bold text-red-500">Bại</p>;
-                        } else if (match.score === 0) {
-                          scoreDisplay = <p className="text-lg font-bold text-yellow-500">Hòa</p>;
-                        } else if (match.score === 1) {
-                          scoreDisplay = <p className="text-lg font-bold text-green-500">Thắng</p>;
-                        } else {
-                          // Game tính điểm (score > 1 hoặc < -1)
+                        // Danh sách game tính điểm (không dùng thắng/thua/hòa)
+                        const scoreBasedGames = ["Drawing", "Memory", "Match 3 Candy", "Classic Snake"];
+                        const isScoreBased = scoreBasedGames.some((name) => match.game_name.toLowerCase().includes(name.toLowerCase()));
+
+                        if (isScoreBased) {
+                          // Game tính điểm: luôn hiển thị số điểm
                           scoreDisplay = <p className="text-lg font-bold">{match.score} điểm</p>;
+                        } else {
+                          // Game đối kháng: hiển thị thắng/thua/hòa
+                          if (match.score === -1) {
+                            scoreDisplay = <p className="text-lg font-bold text-red-500">Bại</p>;
+                          } else if (match.score === 0) {
+                            scoreDisplay = <p className="text-lg font-bold text-yellow-500">Hòa</p>;
+                          } else if (match.score === 1) {
+                            scoreDisplay = <p className="text-lg font-bold text-green-500">Thắng</p>;
+                          } else {
+                            // Trường hợp khác (không nên xảy ra với game đối kháng)
+                            scoreDisplay = <p className="text-lg font-bold">{match.score} điểm</p>;
+                          }
                         }
                       }
 

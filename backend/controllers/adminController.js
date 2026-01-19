@@ -7,7 +7,9 @@ module.exports = {
     try {
       const requesterId = req.user?.id || req.userId;
       if (!requesterId && !req.user?.role === "admin") {
-        return res.status(401).json({ status: "error", message: "Unauthorized" });
+        return res
+          .status(401)
+          .json({ status: "error", message: "Unauthorized" });
       }
 
       const users = await userModel.getAllUsers();
@@ -15,7 +17,9 @@ module.exports = {
       return res.json({ data: users });
     } catch (err) {
       console.error("getAllUsers error:", err);
-      return res.status(500).json({ status: "error", message: "Internal Server Error" });
+      return res
+        .status(500)
+        .json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -24,7 +28,9 @@ module.exports = {
     try {
       const requesterId = req.user?.id || req.userId;
       if (!requesterId && !req.user?.role === "admin") {
-        return res.status(401).json({ status: "error", message: "Unauthorized" });
+        return res
+          .status(401)
+          .json({ status: "error", message: "Unauthorized" });
       }
 
       const userId = req.params.id;
@@ -32,7 +38,9 @@ module.exports = {
       const isBanned = req.body.is_banned;
 
       if (typeof isBanned !== "boolean") {
-        return res.status(400).json({ status: "error", message: "is_banned must be a boolean" });
+        return res
+          .status(400)
+          .json({ status: "error", message: "is_banned must be a boolean" });
       }
 
       await userModel.toggleBan(userId, isBanned);
@@ -40,7 +48,9 @@ module.exports = {
       return res.json({ data: { userId, isBanned } });
     } catch (err) {
       console.error("getAllUsers error:", err);
-      return res.status(500).json({ status: "error", message: "Internal Server Error" });
+      return res
+        .status(500)
+        .json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -49,7 +59,9 @@ module.exports = {
     try {
       const requesterId = req.user?.id || req.userId;
       if (!requesterId || req.user?.role !== "admin") {
-        return res.status(401).json({ status: "error", message: "Unauthorized" });
+        return res
+          .status(401)
+          .json({ status: "error", message: "Unauthorized" });
       }
 
       const gamesPlayed = await db("game_logs")
@@ -62,7 +74,9 @@ module.exports = {
       return res.json({ data: gamesPlayed });
     } catch (err) {
       console.error("getGamesPlayed error:", err);
-      return res.status(500).json({ status: "error", message: "Internal Server Error" });
+      return res
+        .status(500)
+        .json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -71,7 +85,9 @@ module.exports = {
     try {
       const requesterId = req.user?.id || req.userId;
       if (!requesterId || req.user?.role !== "admin") {
-        return res.status(401).json({ status: "error", message: "Unauthorized" });
+        return res
+          .status(401)
+          .json({ status: "error", message: "Unauthorized" });
       }
 
       const gameId = req.query.game_id;
@@ -100,7 +116,9 @@ module.exports = {
       return res.json({ data: activityByHour });
     } catch (err) {
       console.error("getHourlyActivity error:", err);
-      return res.status(500).json({ status: "error", message: "Internal Server Error" });
+      return res
+        .status(500)
+        .json({ status: "error", message: "Internal Server Error" });
     }
   },
 };
