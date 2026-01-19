@@ -658,68 +658,71 @@ export default function MemoryGame() {
         const playerWon = playerPairs > computerPairs;
 
         return (
-            <div className="flex flex-col items-center gap-8 w-full max-w-lg">
-                <div className={cn(
-                    "p-10 rounded-3xl border-2 flex flex-col items-center gap-6",
-                    playerWon ? "bg-emerald-900/30 border-emerald-500/50" : "bg-rose-900/30 border-rose-500/50"
-                )}>
-                    <div className={cn("w-24 h-24 rounded-full flex items-center justify-center", playerWon ? "bg-emerald-500/20" : "bg-rose-500/20")}>
-                        {playerWon ? <Trophy className="w-12 h-12 text-emerald-400" /> : <Frown className="w-12 h-12 text-rose-400" />}
+            <div className="flex flex-col items-center justify-center w-full h-full px-4 overflow-y-auto py-6">
+                <div className="flex flex-col items-center gap-8 w-full max-w-lg">
+                    <div className={cn(
+                        "p-10 rounded-3xl border-2 flex flex-col items-center gap-6",
+                        playerWon ? "bg-emerald-900/30 border-emerald-500/50" : "bg-rose-900/30 border-rose-500/50"
+                    )}>
+                        <div className={cn("w-24 h-24 rounded-full flex items-center justify-center", playerWon ? "bg-emerald-500/20" : "bg-rose-500/20")}>
+                            {playerWon ? <Trophy className="w-12 h-12 text-emerald-400" /> : <Frown className="w-12 h-12 text-rose-400" />}
+                        </div>
+                        <div className="text-center">
+                            <h2 className="text-4xl font-black text-white mb-2">
+                                {playerWon ? "BẠN THẮNG!" : playerPairs === computerPairs ? "HÒA!" : "MÁY THẮNG!"}
+                            </h2>
+                            <p className="text-slate-400">Bạn: {playerPairs} cặp | Máy: {computerPairs} cặp</p>
+                        </div>
+                        <div className="bg-slate-950/50 px-8 py-4 rounded-2xl text-center">
+                            <span className="text-slate-400 text-sm">TỔNG ĐIỂM</span>
+                            <p className="text-5xl font-black text-white">{score}</p>
+                            <div className="text-xs text-slate-500 mt-2">{breakdown.join(" | ")}</div>
+                        </div>
+                        <Button onClick={() => { setGameStarted(false); setGameEnded(false); }} className="bg-violet-600 hover:bg-violet-500 text-white font-bold px-12 py-6 rounded-2xl text-lg">
+                            CHƠI LẠI
+                        </Button>
                     </div>
-                    <div className="text-center">
-                        <h2 className="text-4xl font-black text-white mb-2">
-                            {playerWon ? "BẠN THẮNG!" : playerPairs === computerPairs ? "HÒA!" : "MÁY THẮNG!"}
-                        </h2>
-                        <p className="text-slate-400">Bạn: {playerPairs} cặp | Máy: {computerPairs} cặp</p>
-                    </div>
-                    <div className="bg-slate-950/50 px-8 py-4 rounded-2xl text-center">
-                        <span className="text-slate-400 text-sm">TỔNG ĐIỂM</span>
-                        <p className="text-5xl font-black text-white">{score}</p>
-                        <div className="text-xs text-slate-500 mt-2">{breakdown.join(" | ")}</div>
-                    </div>
-                    <Button onClick={() => { setGameStarted(false); setGameEnded(false); }} className="bg-violet-600 hover:bg-violet-500 text-white font-bold px-12 py-6 rounded-2xl text-lg">
-                        CHƠI LẠI
-                    </Button>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col items-center gap-3 w-full max-w-3xl h-full px-4 py-2 justify-center">
+        <div className="flex flex-col items-center w-full h-full px-4 py-4 overflow-y-auto">
+            <div className="flex flex-col items-center gap-3 w-full max-w-3xl">
 
-            <div className="grid grid-cols-4 w-full gap-2">
-                <StatBox label="ĐIỂM" value={playerScore} color="text-emerald-400" icon={<Target className="w-3 h-3" />} />
-                <StatBox label="BẠN" value={`${playerPairs} cặp`} color="text-purple-400" icon={<User className="w-3 h-3" />} />
-                <StatBox label="MÁY" value={`${computerPairs} cặp`} color="text-blue-400" icon={<Cpu className="w-3 h-3" />} />
-                <StatBox label="THỜI GIAN" value={`${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`} color={timeLeft < 30 ? "text-rose-400 animate-pulse" : "text-amber-400"} icon={<Clock className="w-3 h-3" />} />
-            </div>
-
-            <div className="flex items-center gap-4 bg-slate-900/50 px-6 py-2 rounded-full border border-white/5">
-                <div className={cn("flex items-center gap-2", isPlayerTurn ? "text-purple-400" : "text-slate-500")}>
-                    <User className="w-4 h-4" />
-                    <span className="font-bold text-sm">LƯỢT BẠN</span>
+                <div className="grid grid-cols-4 w-full gap-2 flex-shrink-0">
+                    <StatBox label="ĐIỂM" value={playerScore} color="text-emerald-400" icon={<Target className="w-3 h-3" />} />
+                    <StatBox label="BẠN" value={`${playerPairs} cặp`} color="text-purple-400" icon={<User className="w-3 h-3" />} />
+                    <StatBox label="MÁY" value={`${computerPairs} cặp`} color="text-blue-400" icon={<Cpu className="w-3 h-3" />} />
+                    <StatBox label="THỜI GIAN" value={`${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`} color={timeLeft < 30 ? "text-rose-400 animate-pulse" : "text-amber-400"} icon={<Clock className="w-3 h-3" />} />
                 </div>
-                <span className="text-slate-600">|</span>
-                <div className={cn("flex items-center gap-2", !isPlayerTurn ? "text-blue-400" : "text-slate-500")}>
-                    <Cpu className="w-4 h-4" />
-                    <span className="font-bold text-sm">LƯỢT MÁY</span>
+
+                <div className="flex items-center gap-4 bg-slate-900/50 px-6 py-2 rounded-full border border-white/5 flex-shrink-0 flex-wrap justify-center">
+                    <div className={cn("flex items-center gap-2", isPlayerTurn ? "text-purple-400" : "text-slate-500")}>
+                        <User className="w-4 h-4" />
+                        <span className="font-bold text-sm">LƯỢT BẠN</span>
+                    </div>
+                    <span className="text-slate-600">|</span>
+                    <div className={cn("flex items-center gap-2", !isPlayerTurn ? "text-blue-400" : "text-slate-500")}>
+                        <Cpu className="w-4 h-4" />
+                        <span className="font-bold text-sm">LƯỢT MÁY</span>
+                    </div>
+                    {!isPlayerTurn && <Loader2 className="w-4 h-4 animate-spin text-blue-400" />}
+                    {comboCount > 0 && isPlayerTurn && (
+                        <span className="text-amber-400 font-bold text-sm animate-pulse">
+                            <Zap className="w-4 h-4 inline" /> COMBO x{comboCount}
+                        </span>
+                    )}
                 </div>
-                {!isPlayerTurn && <Loader2 className="w-4 h-4 animate-spin text-blue-400" />}
-                {comboCount > 0 && isPlayerTurn && (
-                    <span className="text-amber-400 font-bold text-sm animate-pulse">
-                        <Zap className="w-4 h-4 inline" /> COMBO x{comboCount}
-                    </span>
-                )}
-            </div>
 
 
 
-            <div className="relative">
-                <div className="absolute -inset-4 bg-purple-500/10 rounded-3xl blur-2xl" />
-                <div
-                    className={cn("relative grid grid-cols-4 gap-3 bg-slate-900 p-4 rounded-2xl shadow-2xl border-4 border-slate-700 transition-all", !isPlayerTurn && "opacity-80")}
-                    style={{ width: 'min(90vw, 65vh)', aspectRatio: '1/1' }}
+                <div className="relative flex-shrink-0">
+                    <div className="absolute -inset-4 bg-purple-500/10 rounded-3xl blur-2xl" />
+                    <div
+                        className={cn("relative grid grid-cols-4 gap-3 bg-slate-900 p-4 rounded-2xl shadow-2xl border-4 border-slate-700 transition-all", !isPlayerTurn && "opacity-80")}
+                        style={{ width: 'min(80vw, 50vh, 600px)', aspectRatio: '1/1' }}
                 >
                     {cards.map((icon, i) => {
                         const isFlipped = flippedIndices.includes(i);
@@ -756,7 +759,7 @@ export default function MemoryGame() {
             <Button
                 onClick={handleSave}
                 disabled={isSaving || !gameStarted || gameEnded}
-                className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all"
+                className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-6 py-2 rounded-xl flex items-center gap-2 transition-all flex-shrink-0"
             >
                 {isSaving ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -766,7 +769,9 @@ export default function MemoryGame() {
                 {isSaving ? "Đang lưu..." : "Lưu Game"}
             </Button>
 
-            <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        </div>
+
+        <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
                 <AlertDialogContent className="bg-slate-900 border-slate-700">
                     <AlertDialogHeader>
                         <AlertDialogTitle className="text-white">Tạm dừng game</AlertDialogTitle>
@@ -791,7 +796,7 @@ export default function MemoryGame() {
 
 function StatBox({ label, value, color, icon }) {
     return (
-        <div className="bg-slate-900/60 border border-white/5 p-2 rounded-xl backdrop-blur-md flex flex-col items-center justify-center">
+        <div className="bg-slate-900/60 border border-white/5 p-2 rounded-xl backdrop-blur-md flex flex-col items-center justify-center min-h-[60px]">
             <div className={cn("flex items-center gap-1 mb-0.5", color)}>
                 {icon}
                 <span className="text-[8px] font-black tracking-wider">{label}</span>

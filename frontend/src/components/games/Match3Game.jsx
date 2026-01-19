@@ -870,37 +870,38 @@ export default function Match3Game() {
 
     // --- MAIN GAME SCREEN ---
     return (
-        <div className="flex flex-col items-center gap-3 w-full max-w-5xl h-full px-4 py-2 justify-center">
+        <div className="flex flex-col items-center w-full h-full px-4 py-4 overflow-y-auto">
+            <div className="flex flex-col items-center gap-3 w-full max-w-5xl">
 
-            {/* Score Bars */}
-            <div className="w-full max-w-2xl grid grid-cols-2 gap-4">
-                <ScoreBar
-                    label="Điểm số của tôi"
-                    score={playerScore}
-                    target={targetScore}
-                    icon={<User className="w-4 h-4" />}
-                    color="emerald"
-                />
-                <ScoreBar
-                    label="Điểm số của máy"
-                    score={computerScore}
-                    target={targetScore}
-                    icon={<Cpu className="w-4 h-4" />}
-                    color="rose"
-                />
-            </div>
+                {/* Score Bars */}
+                <div className="w-full max-w-2xl grid grid-cols-2 gap-4 flex-shrink-0">
+                    <ScoreBar
+                        label="Điểm số của tôi"
+                        score={playerScore}
+                        target={targetScore}
+                        icon={<User className="w-4 h-4" />}
+                        color="emerald"
+                    />
+                    <ScoreBar
+                        label="Điểm số của máy"
+                        score={computerScore}
+                        target={targetScore}
+                        icon={<Cpu className="w-4 h-4" />}
+                        color="rose"
+                    />
+                </div>
 
-            {/* Timer & Info */}
-            <div className="flex items-center gap-4 bg-slate-900/60 px-6 py-2 rounded-full border border-white/10">
-                <div className={cn("flex items-center gap-2", timeLeft < 30 ? "text-rose-400 animate-pulse" : "text-amber-400")}>
-                    <Clock className="w-4 h-4" />
-                    <span className="font-mono font-bold text-lg">{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
-                </div>
-                <div className="w-px h-6 bg-white/10" />
-                <div className="flex items-center gap-2 text-violet-400">
-                    <Target className="w-4 h-4" />
-                    <span className="font-mono text-sm">MỤC TIÊU: {targetScore} điểm</span>
-                </div>
+                {/* Timer & Info */}
+                <div className="flex items-center gap-4 bg-slate-900/60 px-6 py-2 rounded-full border border-white/10 flex-shrink-0 flex-wrap justify-center">
+                    <div className={cn("flex items-center gap-2", timeLeft < 30 ? "text-rose-400 animate-pulse" : "text-amber-400")}>
+                        <Clock className="w-4 h-4" />
+                        <span className="font-mono font-bold text-lg">{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
+                    </div>
+                    <div className="w-px h-6 bg-white/10" />
+                    <div className="flex items-center gap-2 text-violet-400">
+                        <Target className="w-4 h-4" />
+                        <span className="font-mono text-sm">MỤC TIÊU: {targetScore} điểm</span>
+                    </div>
                 {comboMultiplier > 1 && (
                     <>
                         <div className="w-px h-6 bg-white/10" />
@@ -914,7 +915,7 @@ export default function Match3Game() {
 
 
             {/* Game Board */}
-            <div className="relative">
+            <div className="relative flex-shrink-0">
                 <div className={cn(
                     "absolute -inset-3 rounded-3xl blur-2xl transition-all duration-500",
                     gameStatus === "win" && "bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 animate-pulse",
@@ -930,7 +931,7 @@ export default function Match3Game() {
                     )}
                     style={{
                         gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
-                        width: 'min(90vw, 65vh)',
+                        width: 'min(80vw, 50vh, 600px)',
                         aspectRatio: '1/1'
                     }}
                 >
@@ -1004,7 +1005,7 @@ export default function Match3Game() {
             <Button
                 onClick={handleSave}
                 disabled={isSaving || !gameStarted || gameStatus !== "playing"}
-                className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all"
+                className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-6 py-2 rounded-xl flex items-center gap-2 transition-all flex-shrink-0"
             >
                 {isSaving ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -1014,8 +1015,10 @@ export default function Match3Game() {
                 {isSaving ? "Đang lưu..." : "Lưu Game"}
             </Button>
 
-            {/* Exit Dialog */}
-            <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        </div>
+
+        {/* Exit Dialog */}
+        <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
                 <AlertDialogContent className="bg-slate-900 border-slate-700">
                     <AlertDialogHeader>
                         <AlertDialogTitle className="text-white">Tạm dừng game</AlertDialogTitle>
