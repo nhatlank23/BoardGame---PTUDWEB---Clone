@@ -108,8 +108,8 @@ export default function MessagesPage() {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         
-        <main className="flex-1 ml-64 mt-16 flex flex-col overflow-hidden">
-          <div className="flex-shrink-0 p-8 pb-4">
+        <main className="flex-1 ml-64 mt-16 pl-8 flex flex-col overflow-hidden">
+          <div className="flex-shrink-0 p-8 pb-0">
             <h1 className="text-4xl font-bold">Tin nhắn</h1>
           </div>
 
@@ -119,14 +119,14 @@ export default function MessagesPage() {
             </div>
           )}
 
-          <div className="flex-1 px-8 pb-8 overflow-hidden">
-            <Card className="h-full flex flex-col">
+          <div className="flex-1 pb-8 overflow-hidden p-8">
+            <Card className="h-full flex flex-col p-0">
               <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
                 <div className="flex flex-1 overflow-hidden">
                   {/* Conversations List */}
                   <div className="w-[350px] border-r flex flex-col flex-shrink-0">
-                    <div className="flex-shrink-0 p-4 border-b">
-                      <div className="relative">
+                    <div className="flex-shrink-0 px-4 py-3 border-b h-[73px] flex items-center">
+                      <div className="relative w-full">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input 
                           placeholder="Tìm kiếm..." 
@@ -152,7 +152,7 @@ export default function MessagesPage() {
                           key={friend.id}
                           onClick={() => setSelectedFriend(friend)}
                           className={cn(
-                            "w-full flex items-center gap-3 p-4 border-b hover:bg-accent transition-colors",
+                            "w-full flex items-center gap-3 px-4 py-3 h-[73px] border-b hover:bg-accent transition-colors",
                             selectedFriend?.id === friend.id && "bg-accent",
                           )}
                         >
@@ -178,7 +178,7 @@ export default function MessagesPage() {
                     {selectedFriend ? (
                       <>
                         {/* Chat Header */}
-                        <div className="flex-shrink-0 p-4 border-b flex items-center gap-3">
+                        <div className="flex-shrink-0 px-4 py-3 border-b flex items-center gap-3 h-[73px]">
                           <Avatar>
                             <AvatarImage src={selectedFriend.avatar || "/placeholder.svg"} />
                             <AvatarFallback>{selectedFriend.name?.[0]?.toUpperCase() || "?"}</AvatarFallback>
