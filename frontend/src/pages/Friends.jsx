@@ -192,8 +192,10 @@ export default function FriendsPage() {
   };
 
   // Navigate to messages page with selected friend
-  const handleMessageClick = (friendId) => {
-    navigate(`/messages?userId=${friendId}`);
+  const handleMessageClick = (friend) => {
+    navigate('/messages', { 
+      state: { selectedFriend: friend }
+    });
   };
 
   return (
@@ -255,7 +257,7 @@ export default function FriendsPage() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={() => handleMessageClick(friend.id)}>
+                            <Button variant="outline" size="sm" onClick={() => handleMessageClick(friend)}>
                               <MessageCircle className="mr-2 h-4 w-4" />
                               Nhắn tin
                             </Button>
