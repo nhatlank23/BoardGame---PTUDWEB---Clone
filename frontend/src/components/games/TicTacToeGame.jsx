@@ -694,14 +694,14 @@ export default function TicTacToeGame() {
 
     // --- MAIN GAME SCREEN ---
     return (
-        <div className="flex flex-col items-center w-full h-full px-4 py-4 overflow-y-auto">
-            <div className="flex flex-col items-center gap-3 w-full max-w-2xl">
+        <div className="flex flex-col items-center w-full h-full overflow-hidden">
+            <div className="flex flex-col items-center gap-3 w-full h-full max-w-3xl px-4 py-4 overflow-y-auto">
 
                 <div className="grid grid-cols-4 w-full gap-2 flex-shrink-0">
                     <StatBox label="ĐIỂM" value={totalScore} color="text-emerald-400" icon={<Target className="w-4 h-4" />} />
                     <StatBox label="VÁN" value={roundsPlayed} color="text-violet-400" icon={<Zap className="w-4 h-4" />} />
                     <StatBox label="THỜI GIAN" value={`${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`} color={timeLeft < 30 ? "text-rose-400 animate-pulse" : "text-amber-400"} icon={<Clock className="w-4 h-4" />} />
-                    <div className="bg-slate-900/60 border border-white/5 p-2 rounded-xl flex items-center justify-center">
+                    <div className="bg-slate-900/60 border border-white/5 p-2 rounded-xl flex items-center justify-center min-h-[60px]">
                         <div className={cn("flex items-center gap-2", isXNext ? "text-red-400" : "text-blue-400")}>
                             {isXNext ? <User className="w-4 h-4" /> : <Cpu className="w-4 h-4" />}
                             <span className="font-bold text-xs">{isXNext ? "Lượt bạn" : "Lượt máy"}</span>
@@ -712,48 +712,48 @@ export default function TicTacToeGame() {
 
 
                 {/* Game Board */}
-                <div className="relative flex-shrink-0 w-full flex justify-center">
-                    <div className="absolute -inset-4 bg-red-500/10 rounded-3xl blur-2xl" />
-                    <div className="relative grid grid-cols-3 gap-2 bg-slate-900 p-3 rounded-2xl shadow-2xl border-4 border-slate-700"
-                        style={{ width: 'min(80vw, 50vh, 500px)', aspectRatio: '1/1' }}
-                    >
-                        {board.map((cell, i) => (
-                            <div
-                                key={i}
-                                onClick={() => handleCellClick(i)}
-                                className={cn(
-                                    "flex items-center justify-center rounded-xl transition-all duration-300 cursor-pointer border-2",
-                                    cell === null && isXNext && !winner ? "bg-slate-800 hover:bg-slate-700 border-slate-700" : "border-transparent",
-                                    cell === 'X' && "bg-red-500/20 border-red-500",
-                                    cell === 'O' && "bg-blue-500/20 border-blue-500",
-                                    hintCell === i && "ring-4 ring-yellow-400 animate-pulse",
-                                    (!isXNext || winner) && cell === null && "opacity-70 cursor-not-allowed"
-                                )}
-                            >
-                                {cell === 'X' && <X className="w-1/2 h-1/2 text-red-500" strokeWidth={3} />}
-                                {cell === 'O' && <Circle className="w-1/2 h-1/2 text-blue-500" strokeWidth={4} />}
-                            </div>
-                        ))}
-
-                        {winner && (
-                            <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl z-20 animate-in fade-in zoom-in">
-                                <div className={cn(
-                                    "p-6 rounded-2xl flex flex-col items-center gap-4",
-                                    winner === "X" ? "bg-emerald-900/50 border border-emerald-500/50" :
-                                        winner === "Draw" ? "bg-amber-900/50 border border-amber-500/50" :
-                                            "bg-rose-900/50 border border-rose-500/50"
-                                )}>
-                                    <span className="text-5xl">{winner === "X" ? "🎉" : winner === "Draw" ? "🤝" : "💻"}</span>
-                                    <h3 className="text-2xl font-black text-white">
-                                        {winner === "X" ? "BẠN THẮNG!" : winner === "Draw" ? "HÒA!" : "MÁY THẮNG!"}
-                                    </h3>
-                                    <div className="text-3xl font-black text-emerald-400">+{roundScore}</div>
-                                    <Button onClick={handleNewRound} className="bg-violet-600 hover:bg-violet-500 text-white font-bold px-8 py-4 rounded-xl">
-                                        VÁN TIẾP THEO
-                                    </Button>
+                <div className="relative flex-shrink-0 w-full flex items-center justify-center" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+                    <div className="relative w-full max-w-sm" style={{ aspectRatio: '1/1' }}>
+                        <div className="absolute -inset-4 bg-red-500/10 rounded-3xl blur-2xl" />
+                        <div className="relative w-full h-full grid grid-cols-3 gap-2 bg-slate-900 p-3 rounded-2xl shadow-2xl border-4 border-slate-700">
+                            {board.map((cell, i) => (
+                                <div
+                                    key={i}
+                                    onClick={() => handleCellClick(i)}
+                                    className={cn(
+                                        "flex items-center justify-center rounded-xl transition-all duration-300 cursor-pointer border-2 aspect-square",
+                                        cell === null && isXNext && !winner ? "bg-slate-800 hover:bg-slate-700 border-slate-700" : "border-transparent",
+                                        cell === 'X' && "bg-red-500/20 border-red-500",
+                                        cell === 'O' && "bg-blue-500/20 border-blue-500",
+                                        hintCell === i && "ring-4 ring-yellow-400 animate-pulse",
+                                        (!isXNext || winner) && cell === null && "opacity-70 cursor-not-allowed"
+                                    )}
+                                >
+                                    {cell === 'X' && <X className="w-1/2 h-1/2 text-red-500" strokeWidth={3} />}
+                                    {cell === 'O' && <Circle className="w-1/2 h-1/2 text-blue-500" strokeWidth={4} />}
                                 </div>
-                            </div>
-                        )}
+                            ))}
+
+                            {winner && (
+                                <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl z-20 animate-in fade-in zoom-in">
+                                    <div className={cn(
+                                        "p-6 rounded-2xl flex flex-col items-center gap-4",
+                                        winner === "X" ? "bg-emerald-900/50 border border-emerald-500/50" :
+                                            winner === "Draw" ? "bg-amber-900/50 border border-amber-500/50" :
+                                                "bg-rose-900/50 border border-rose-500/50"
+                                    )}>
+                                        <span className="text-5xl">{winner === "X" ? "🎉" : winner === "Draw" ? "🤝" : "💻"}</span>
+                                        <h3 className="text-2xl font-black text-white">
+                                            {winner === "X" ? "BẠN THẮNG!" : winner === "Draw" ? "HÒA!" : "MÁY THẮNG!"}
+                                        </h3>
+                                        <div className="text-3xl font-black text-emerald-400">+{roundScore}</div>
+                                        <Button onClick={handleNewRound} className="bg-violet-600 hover:bg-violet-500 text-white font-bold px-8 py-4 rounded-xl">
+                                            VÁN TIẾP THEO
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -807,3 +807,4 @@ function StatBox({ label, value, color, icon }) {
         </div>
     );
 }
+
