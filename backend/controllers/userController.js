@@ -110,6 +110,39 @@ module.exports = {
     }
   },
 
+  // GET /api/friends/sent - Get sent friend requests (outgoing pending)
+  getSentFriendRequests: async (req, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res
+          .status(401)
+          .json({ status: "error", message: "Unauthorized" });
+      }
+
+      const rows = await db("friendships")
+        .where("friendships.requester_id", userId)
+        .andWhere("friendships.status", "pending")
+        .join("users", "users.id", "friendships.addressee_id")
+        .select("users.id", "users.username", "users.email", "users.avatar_url")
+        .limit(50);
+
+      const sentRequests = rows.map((r) => ({
+        id: r.id,
+        name: r.username,
+        email: r.email,
+        avatar: r.avatar_url || null,
+      }));
+
+      return res.json({ data: sentRequests });
+    } catch (err) {
+      console.error("getSentFriendRequests error:", err);
+      return res
+        .status(500)
+        .json({ status: "error", message: "Internal Server Error" });
+    }
+  },
+
   // POST /api/friends/request
   sendFriendRequest: async (req, res) => {
     try {

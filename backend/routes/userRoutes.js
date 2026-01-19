@@ -31,6 +31,9 @@ router.get("/friends", userController.getFriends);
 // Friend requests endpoint
 router.get("/friends/requests", userController.getFriendRequests);
 
+// Sent friend requests endpoint
+router.get("/friends/sent", userController.getSentFriendRequests);
+
 // Send friend request endpoint
 router.post("/friends/request", userController.sendFriendRequest);
 

@@ -61,6 +61,18 @@ class UserModel {
   static async toggleBan(id, isBanned) {
     return await this.updateUser(id, { is_banned: isBanned });
   }
+
+  // Cập nhật mật khẩu (cho reset password)
+  static async updatePassword(email, newPassword) {
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    await db("users").where({ email }).update({
+      password_hash: passwordHash,
+      updated_at: db.fn.now(),
+    });
+
+    return true;
+  }
 }
 
 module.exports = UserModel;
