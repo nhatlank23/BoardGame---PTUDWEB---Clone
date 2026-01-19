@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,14 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, UserPlus, Check, X } from "lucide-react";
+import { Search, UserPlus, Check, X, MessageCircle } from "lucide-react";
 import { friendService } from "@/services/friendService";
 import { useToast } from "@/hooks/use-toast";
 
 export default function FriendsPage() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [friends, setFriends] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
+  const [sentRequests, setSentRequests] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -24,6 +27,7 @@ export default function FriendsPage() {
   useEffect(() => {
     loadFriends();
     loadFriendRequests();
+    loadSentRequests();
   }, []);
 
   const loadFriends = async () => {
@@ -53,6 +57,17 @@ export default function FriendsPage() {
       }
     } catch (error) {
       console.error("Error loading friend requests:", error);
+    }
+  };
+
+  const loadSentRequests = async () => {
+    try {
+      const response = await friendService.getSentRequests();
+      if (response.data) {
+        setSentRequests(response.data);
+      }
+    } catch (error) {
+      console.error("Error loading sent requests:", error);
     }
   };
 
@@ -92,8 +107,8 @@ export default function FriendsPage() {
         title: "Thành công",
         description: "Đã gửi lời mời kết bạn",
       });
-      // Remove from search results
-      setSearchResults(searchResults.filter((user) => user.id !== userId));
+      // Reload sent requests to update UI
+      loadSentRequests();
     } catch (error) {
       console.error("Error sending friend request:", error);
       toast({
@@ -111,9 +126,10 @@ export default function FriendsPage() {
         title: "Thành công",
         description: "Đã chấp nhận lời mời kết bạn",
       });
-      // Reload both lists
+      // Reload all lists
       loadFriends();
       loadFriendRequests();
+      loadSentRequests();
     } catch (error) {
       console.error("Error accepting request:", error);
       toast({
@@ -163,6 +179,21 @@ export default function FriendsPage() {
   // Check if user is already a friend
   const isFriend = (userId) => {
     return friends.some((friend) => friend.id === userId);
+  };
+
+  // Check if user has sent you a friend request (incoming)
+  const hasIncomingRequest = (userId) => {
+    return friendRequests.some((request) => request.id === userId);
+  };
+
+  // Check if you have sent a friend request to this user (outgoing)
+  const hasSentRequest = (userId) => {
+    return sentRequests.some((request) => request.id === userId);
+  };
+
+  // Navigate to messages page with selected friend
+  const handleMessageClick = (friendId) => {
+    navigate(`/messages?userId=${friendId}`);
   };
 
   return (
@@ -224,7 +255,8 @@ export default function FriendsPage() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" onClick={() => handleMessageClick(friend.id)}>
+                              <MessageCircle className="mr-2 h-4 w-4" />
                               Nhắn tin
                             </Button>
                             <Button variant="destructive" size="sm" onClick={() => handleUnfriend(friend.id)}>
@@ -325,6 +357,21 @@ export default function FriendsPage() {
                           {isFriend(user.id) ? (
                             <Badge variant="secondary" className="px-3 py-1">
                               Bạn bè
+                            </Badge>
+                          ) : hasIncomingRequest(user.id) ? (
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={() => handleAcceptRequest(user.id)}>
+                                <Check className="mr-2 h-4 w-4" />
+                                Đồng ý
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => handleDeclineRequest(user.id)}>
+                                <X className="mr-2 h-4 w-4" />
+                                Từ chối
+                              </Button>
+                            </div>
+                          ) : hasSentRequest(user.id) ? (
+                            <Badge variant="outline" className="px-3 py-1">
+                              Đã gửi lời mời
                             </Badge>
                           ) : (
                             <Button size="sm" onClick={() => handleSendFriendRequest(user.id)}>

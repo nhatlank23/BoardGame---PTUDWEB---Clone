@@ -12,6 +12,11 @@ export const friendService = {
     return await apiClient.get("/users/friends/requests");
   },
 
+  // Lấy danh sách lời mời đã gửi (outgoing requests)
+  async getSentRequests() {
+    return await apiClient.get("/users/friends/sent");
+  },
+
   // Tìm kiếm user
   async searchUsers(query) {
     return await apiClient.get(`/users/search?q=${encodeURIComponent(query)}`);
