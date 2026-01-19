@@ -10,8 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Search, Lock, Unlock, Trash2 } from "lucide-react";
 import { adminService } from "../../services/adminService";
+import { useToast } from "../../hooks/use-toast";
 
 export default function Users() {
+  const { toast } = useToast();
   const [filterStatus, setFilterStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [actionDialog, setActionDialog] = useState({ open: false, action: "", username: "", userId: "" });
@@ -58,6 +60,19 @@ export default function Users() {
   //   },
   // ];
 
+  async function fetchUsers() {
+    try {
+      setLoading(true);
+      const res = await adminService.getAllUsers();
+
+      setUsers(res.data);
+    } catch (error) {
+      toast({ title: "Lỗi kết nối", description: "Vui lòng kiểm tra API", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const handleAction = (action, userName, userId) => {
     setActionDialog({ open: true, action, username: userName, userId: userId });
   };
@@ -80,21 +95,24 @@ export default function Users() {
 
     async function bannedUser(id) {
       const res = await adminService.toggleBanUser(id, true);
-      const userId = res.data.userId;
-      const idBanned = res.data.isBanned;
 
-      if (userId === actionDialog.user && idBanned == true) {
-      }
+      await fetchUsers();
+
+      toast({
+        title: "Thành công",
+        description: "Khóa user thành công",
+      });
     }
 
     async function unBannedUser(id) {
       const res = await adminService.toggleBanUser(id, false);
 
-      const userId = res.data.userId;
-      const idBanned = res.data.isBanned;
+      await fetchUsers();
 
-      if (userId === actionDialog.user && idBanned == false) {
-      }
+      toast({
+        title: "Thành công",
+        description: "Mở khóa user thành công",
+      });
     }
 
     const userId = actionDialog.userId;
@@ -112,19 +130,6 @@ export default function Users() {
   }, [filterStatus, users]);
 
   useEffect(() => {
-    async function fetchUsers() {
-      try {
-        setLoading(true);
-        const res = await adminService.getAllUsers();
-
-        setUsers(res.data);
-      } catch (error) {
-        toast({ title: "Lỗi kết nối", description: "Vui lòng kiểm tra API", variant: "destructive" });
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchUsers();
   }, []);
 
