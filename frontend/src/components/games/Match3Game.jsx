@@ -86,11 +86,38 @@ export default function Match3Game() {
     const [isLoadingSession, setIsLoadingSession] = useState(false);
     const [showInstructions, setShowInstructions] = useState(false);
     const [showExitDialog, setShowExitDialog] = useState(false);
+    const [showNavigationDialog, setShowNavigationDialog] = useState(false);
+    const [pendingNavigation, setPendingNavigation] = useState(null);
 
     const timerRef = useRef();
     const elapsedRef = useRef();
     const aiTimerRef = useRef();
     const containerRef = useRef(null);
+    const isNavigatingRef = useRef(false);
+
+    useEffect(() => {
+        const shouldBlock = gameStarted && gameStatus === "playing" && !isNavigatingRef.current;
+        
+        const handleClick = (e) => {
+            if (!shouldBlock) return;
+            
+            const target = e.target.closest('a[href]');
+            if (target && target.getAttribute('href') !== window.location.pathname) {
+                e.preventDefault();
+                e.stopPropagation();
+                setPendingNavigation(target.getAttribute('href'));
+                setShowNavigationDialog(true);
+            }
+        };
+
+        if (shouldBlock) {
+            document.addEventListener('click', handleClick, true);
+        }
+
+        return () => {
+            document.removeEventListener('click', handleClick, true);
+        };
+    }, [gameStarted, gameStatus]);
 
     // --- 1. FETCH CONFIG ---
     useEffect(() => {
@@ -584,6 +611,37 @@ export default function Match3Game() {
 
     // --- 5 CONTROL BUTTONS HANDLERS ---
 
+    // Navigation handlers
+    const handleNavigationWithSave = async () => {
+        try {
+            await handleSave();
+            isNavigatingRef.current = true;
+            setShowNavigationDialog(false);
+            if (pendingNavigation) {
+                navigate(pendingNavigation);
+            }
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "Lỗi khi lưu trò chơi",
+                description: error.message,
+            });
+        }
+    };
+
+    const handleNavigationWithoutSave = () => {
+        isNavigatingRef.current = true;
+        setShowNavigationDialog(false);
+        if (pendingNavigation) {
+            navigate(pendingNavigation);
+        }
+    };
+
+    const handleCancelNavigation = () => {
+        setShowNavigationDialog(false);
+        setPendingNavigation(null);
+    };
+
     // 1. Left - Navigate time options (config) or no action (game)
     const handleLeft = () => {
         if (!gameStarted) {
@@ -1033,6 +1091,29 @@ export default function Match3Game() {
                         </AlertDialogCancel>
                         <AlertDialogAction onClick={handleExitGameWithSave} className="bg-emerald-600 hover:bg-emerald-500">
                             Lưu & thoát
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Navigation Guard Dialog */}
+            <AlertDialog open={showNavigationDialog} onOpenChange={setShowNavigationDialog}>
+                <AlertDialogContent className="bg-slate-900 border-slate-700 text-white">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Bạn đang có trận đấu dở</AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-300">
+                            Bạn có muốn lưu trận đấu hiện tại trước khi rời đi không?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
+                        <Button onClick={handleCancelNavigation} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800">
+                            Ở lại tiếp tục
+                        </Button>
+                        <AlertDialogCancel onClick={handleNavigationWithoutSave} className="bg-slate-800 text-white hover:bg-slate-700">
+                            Rời đi không lưu
+                        </AlertDialogCancel>
+                        <AlertDialogAction onClick={handleNavigationWithSave} className="bg-emerald-600 hover:bg-emerald-500">
+                            Lưu và rời đi
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
