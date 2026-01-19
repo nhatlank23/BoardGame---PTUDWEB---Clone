@@ -33,11 +33,11 @@ module.exports = {
       }
 
       const gameId = req.params.game_id;
-      if (gameId === "all") {
-        leaderboards = await leaderboardsModel.getTopRankingOfFriendByUserId(userId);
-      } else {
-        leaderboards = await leaderboardsModel.getTopRankingOfFriendByUserId_GameId(userId, gameId);
+      if (!gameId) {
+        return res.status(400).json({ status: "error", message: "Game ID is required" });
       }
+
+      const leaderboards = await leaderboardsModel.getTopRankingOfFriendByUserId_GameId(userId, gameId);
 
       return res.json({ status: "success", data: leaderboards });
     } catch (err) {
