@@ -32,15 +32,15 @@ export default function GamePlay() {
   };
 
   return (
-    <div className="h-screen bg-black text-white flex flex-col overflow-hidden">
+    <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
       <Header />
       <Sidebar />
 
       <main className="flex-1 pt-16 pl-64 flex flex-col overflow-hidden">
         <div className="flex-1 grid grid-cols-12 gap-6 p-6 overflow-hidden">
 
-          <div className="col-span-8 flex flex-col bg-slate-950 rounded-3xl border border-slate-800 shadow-inner relative overflow-hidden">
-            <div className="absolute inset-0 bg-emerald-500/5 radial-gradient opacity-20 pointer-events-none" />
+          <div className="col-span-8 flex flex-col bg-card rounded-3xl border border-border shadow-inner relative overflow-hidden">
+            <div className="absolute inset-0 bg-primary/5 radial-gradient opacity-20 pointer-events-none" />
 
             <div className="relative z-10 flex-1 flex items-center justify-center overflow-y-auto">
               {renderGameContent()}
