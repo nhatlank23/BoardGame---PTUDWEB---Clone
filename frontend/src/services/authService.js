@@ -69,4 +69,31 @@ export const authService = {
     }
     return response;
   },
+
+  // Quên mật khẩu - Gửi OTP
+  async forgotPassword(email) {
+    return await apiClient.post(
+      "/auth/forgot-password",
+      { email },
+      { skipAutoLogout: true }
+    );
+  },
+
+  // Xác thực OTP
+  async verifyOTP(email, otp) {
+    return await apiClient.post(
+      "/auth/verify-otp",
+      { email, otp },
+      { skipAutoLogout: true }
+    );
+  },
+
+  // Đặt lại mật khẩu
+  async resetPassword(email, otp, newPassword) {
+    return await apiClient.post(
+      "/auth/reset-password",
+      { email, otp, newPassword },
+      { skipAutoLogout: true }
+    );
+  },
 };
