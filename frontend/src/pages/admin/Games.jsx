@@ -30,7 +30,7 @@ export default function Games() {
       setLoading(true);
       // Gọi API nhưng lấy tất cả games (không filter is_active)
       const response = await gameService.getAllGamesForAdmin();
-      
+
       if (response.status === "success") {
         setGames(response.data);
       } else {
@@ -119,16 +119,31 @@ export default function Games() {
                 <div className="space-y-4">
                   {games.map((game) => {
                     const config = typeof game.config === 'string' ? JSON.parse(game.config) : (game.config || {});
-                    
+
+                    const getGameImage = (slug) => {
+                      const imageMap = {
+                        "drawing": "/drawing.jpg",
+                        "tic-tac-toe": "/tic-tac-toe.jpg",
+                        "snake": "/Snake_OG-logo.jpg",
+                        "memory": "/memory-card-game.png",
+                        "caro-5": "/caro-game.jpg",
+                        "caro-4": "/caro-game.jpg",
+                        "match-3": "/match-3.jpg"
+                      };
+                      return imageMap[slug] || config.image;
+                    };
+
+                    const displayImage = getGameImage(game.slug);
+
                     return (
                       <div
                         key={game.id}
                         className="flex items-center gap-4 p-4 border rounded-lg"
                       >
                         <div className="h-20 w-28 rounded bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center overflow-hidden">
-                          {config.image ? (
+                          {displayImage ? (
                             <img
-                              src={config.image}
+                              src={displayImage}
                               alt={game.name}
                               className="h-full w-full object-cover"
                             />

@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const GRID_SIZE = 15;
+const DEFAULT_GRID_SIZE = 15;
 const INITIAL_PLAYER_SNAKE = [
   { x: 3, y: 7 },
   { x: 2, y: 7 },
@@ -85,6 +85,7 @@ export default function SnakeGame() {
 
   const [playerSnake, setPlayerSnake] = useState(INITIAL_PLAYER_SNAKE);
   const [cpuSnake, setCpuSnake] = useState(INITIAL_CPU_SNAKE);
+  const [gridSize, setGridSize] = useState(DEFAULT_GRID_SIZE);
   const [food, setFood] = useState({ x: 7, y: 10 });
   const [direction, setDirection] = useState(INITIAL_DIRECTION);
   const [cpuDirection, setCpuDirection] = useState({ x: -1, y: 0 });
@@ -146,6 +147,7 @@ export default function SnakeGame() {
         if (response.status === "success" && response.data?.config) {
           setConfig(response.data.config);
           setGameId(response.data.id);
+          setGridSize(response.data.config.rows || response.data.config.cols || DEFAULT_GRID_SIZE);
           const times = response.data.config.times || [5, 10, 20];
           setTimeLeft(times[0] * 60);
           setTotalGameTime(times[0] * 60);
@@ -168,8 +170,8 @@ export default function SnakeGame() {
     let attempts = 0;
     while (attempts < 100) {
       newFood = {
-        x: Math.floor(Math.random() * GRID_SIZE),
-        y: Math.floor(Math.random() * GRID_SIZE),
+        x: Math.floor(Math.random() * gridSize),
+        y: Math.floor(Math.random() * gridSize),
       };
       const isOnPlayer = pSnake.some((s) => s.x === newFood.x && s.y === newFood.y);
       const isOnCpu = cSnake.some((s) => s.x === newFood.x && s.y === newFood.y);
@@ -177,7 +179,7 @@ export default function SnakeGame() {
       attempts++;
     }
     return newFood;
-  }, []);
+  }, [gridSize]);
 
   // BFS for hint - find path to food, avoid both snakes
   const getHintDirection = useCallback((head, target, body, cpuBody) => {
@@ -205,10 +207,10 @@ export default function SnakeGame() {
       }
 
       const neighbors = [
-        { x: (curr.x + 1 + GRID_SIZE) % GRID_SIZE, y: curr.y },
-        { x: (curr.x - 1 + GRID_SIZE) % GRID_SIZE, y: curr.y },
-        { x: curr.x, y: (curr.y + 1 + GRID_SIZE) % GRID_SIZE },
-        { x: curr.x, y: (curr.y - 1 + GRID_SIZE) % GRID_SIZE },
+        { x: (curr.x + 1 + gridSize) % gridSize, y: curr.y },
+        { x: (curr.x - 1 + gridSize) % gridSize, y: curr.y },
+        { x: curr.x, y: (curr.y + 1 + gridSize) % gridSize },
+        { x: curr.x, y: (curr.y - 1 + gridSize) % gridSize },
       ].filter((n) => !visited.has(`${n.x},${n.y}`));
 
       for (const neighbor of neighbors) {
@@ -217,7 +219,7 @@ export default function SnakeGame() {
       }
     }
     return null;
-  }, []);
+  }, [gridSize]);
 
   // CPU random safe direction
   const getCpuRandomDirection = useCallback((head, currentDir, cpuBody, playerBody) => {
@@ -234,8 +236,8 @@ export default function SnakeGame() {
 
     for (const dir of shuffled) {
       const newHead = {
-        x: (head.x + dir.x + GRID_SIZE) % GRID_SIZE,
-        y: (head.y + dir.y + GRID_SIZE) % GRID_SIZE,
+        x: (head.x + dir.x + gridSize) % gridSize,
+        y: (head.y + dir.y + gridSize) % gridSize,
       };
 
       const hitsOwnBody = cpuBody.slice(1).some((s) => s.x === newHead.x && s.y === newHead.y);
@@ -247,7 +249,7 @@ export default function SnakeGame() {
     }
 
     return currentDir;
-  }, []);
+  }, [gridSize]);
 
   // --- INIT GAME ---
   const initGame = useCallback(() => {
@@ -288,10 +290,10 @@ export default function SnakeGame() {
       let dy = y - head.y;
 
       // Handle wrap-around
-      if (dx > GRID_SIZE / 2) dx -= GRID_SIZE;
-      if (dx < -GRID_SIZE / 2) dx += GRID_SIZE;
-      if (dy > GRID_SIZE / 2) dy -= GRID_SIZE;
-      if (dy < -GRID_SIZE / 2) dy += GRID_SIZE;
+      if (dx > gridSize / 2) dx -= gridSize;
+      if (dx < -gridSize / 2) dx += gridSize;
+      if (dy > gridSize / 2) dy -= gridSize;
+      if (dy < -gridSize / 2) dy += gridSize;
 
       // Determine primary direction (horizontal or vertical)
       let newDir;
@@ -334,8 +336,8 @@ export default function SnakeGame() {
 
       const head = prevSnake[0];
       const newHead = {
-        x: (head.x + nextDir.x + GRID_SIZE) % GRID_SIZE,
-        y: (head.y + nextDir.y + GRID_SIZE) % GRID_SIZE,
+        x: (head.x + nextDir.x + gridSize) % gridSize,
+        y: (head.y + nextDir.y + gridSize) % gridSize,
       };
 
       // Check collision with own body
@@ -378,8 +380,8 @@ export default function SnakeGame() {
 
       const head = prevCpu[0];
       const newHead = {
-        x: (head.x + newDir.x + GRID_SIZE) % GRID_SIZE,
-        y: (head.y + newDir.y + GRID_SIZE) % GRID_SIZE,
+        x: (head.x + newDir.x + gridSize) % gridSize,
+        y: (head.y + newDir.y + gridSize) % gridSize,
       };
 
       // Check if CPU hits itself or player (respawn)
@@ -815,14 +817,14 @@ export default function SnakeGame() {
         <div
           className="relative grid gap-[2px] p-3 bg-card rounded-2xl border-4 border-border shadow-2xl ring-1 ring-border"
           style={{
-            gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
+            gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
             width: "min(90vw, 65vh)",
             aspectRatio: "1/1",
           }}
         >
-          {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => {
-            const x = i % GRID_SIZE;
-            const y = Math.floor(i / GRID_SIZE);
+          {Array.from({ length: gridSize * gridSize }).map((_, i) => {
+            const x = i % gridSize;
+            const y = Math.floor(i / gridSize);
             const isFood = food.x === x && food.y === y;
             const playerIdx = playerSnake.findIndex((s) => s.x === x && s.y === y);
             const cpuIdx = cpuSnake.findIndex((s) => s.x === x && s.y === y);

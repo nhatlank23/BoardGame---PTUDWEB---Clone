@@ -70,6 +70,7 @@ export default function TicTacToeGame() {
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState(null);
   const [gameId, setGameId] = useState(null);
+  const [gridSize, setGridSize] = useState(3);
   const [board, setBoard] = useState(Array(9).fill(null));
   const [isXNext, setIsXNext] = useState(true);
   const [winner, setWinner] = useState(null);
@@ -133,6 +134,10 @@ export default function TicTacToeGame() {
         if (response.status === "success") {
           setConfig(response.data.config);
           setGameId(response.data.id);
+          const cfg = response.data.config || {};
+          const size = cfg.rows || cfg.cols || 3;
+          setGridSize(size);
+          setBoard(Array(size * size).fill(null));
           const times = response.data.config?.times || [5, 10, 20];
           setTimeLeft(times[0] * 60);
           setTotalGameTime(times[0] * 60);
@@ -561,7 +566,7 @@ export default function TicTacToeGame() {
   };
 
   const handleNewRound = () => {
-    setBoard(Array(9).fill(null));
+    setBoard(Array(gridSize * gridSize).fill(null));
     setWinner(null);
     setIsXNext(true);
     setPlayerMoves(0);
@@ -646,7 +651,7 @@ export default function TicTacToeGame() {
     setTotalScore(0);
     setRoundsPlayed(0);
     setPlayerMoves(0);
-    setBoard(Array(9).fill(null));
+    setBoard(Array(gridSize * gridSize).fill(null));
     setWinner(null);
     setIsXNext(true);
     setHintCell(null);
@@ -811,7 +816,10 @@ export default function TicTacToeGame() {
         <div className="relative flex-shrink-0 w-full flex items-center justify-center" style={{ maxHeight: "calc(100vh - 300px)" }}>
           <div className="relative w-full max-w-sm" style={{ aspectRatio: "1/1" }}>
             <div className="absolute -inset-4 bg-red-500/10 rounded-3xl blur-2xl" />
-            <div className="relative w-full h-full grid grid-cols-3 gap-2 bg-card p-3 rounded-2xl shadow-2xl border-4 border-border">
+            <div
+              className="relative w-full h-full grid gap-2 bg-card p-3 rounded-2xl shadow-2xl border-4 border-border"
+              style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
+            >
               {board.map((cell, i) => (
                 <div
                   key={i}
@@ -838,8 +846,8 @@ export default function TicTacToeGame() {
                       winner === "X"
                         ? "bg-emerald-900/50 border border-emerald-500/50"
                         : winner === "Draw"
-                        ? "bg-amber-900/50 border border-amber-500/50"
-                        : "bg-rose-900/50 border border-rose-500/50"
+                          ? "bg-amber-900/50 border border-amber-500/50"
+                          : "bg-rose-900/50 border border-rose-500/50"
                     )}
                   >
                     <span className="text-5xl">{winner === "X" ? "🎉" : winner === "Draw" ? "🤝" : "💻"}</span>
