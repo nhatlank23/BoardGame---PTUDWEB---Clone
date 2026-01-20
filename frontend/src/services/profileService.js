@@ -45,4 +45,9 @@ export const profileService = {
 
     return data.data;
   },
+
+  // Get achievement
+  async getAchievement(page = 1, pageSize = 50) {
+    return apiClient.get(`/users/achievements?page=${page}&pageSize=${pageSize}`);
+  },
 };

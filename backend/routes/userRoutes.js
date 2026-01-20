@@ -358,6 +358,9 @@ router.get("/history", userController.getUserHistory);
  *       200:
  *         description: Thông tin người dùng
  */
+
+router.get("/achievements", userController.getUserAchievements);
+
 router.get("/:id", userController.getUserById);
 
 /**
@@ -378,6 +381,5 @@ router.get("/:id", userController.getUserById);
  *       200:
  *         description: Danh sách thành tích
  */
-router.get("/:id/achievements", userController.getUserAchievements);
 
 module.exports = router;
