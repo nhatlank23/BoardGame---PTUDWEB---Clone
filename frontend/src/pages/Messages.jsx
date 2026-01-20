@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { friendService } from "@/services/friendService";
 import { messageService } from "@/services/messageService";
-import { MessageCircle } from "lucide-react";
 
 const PAGE_SIZE = 50;
 
