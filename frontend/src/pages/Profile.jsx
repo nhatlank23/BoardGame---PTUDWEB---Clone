@@ -28,6 +28,8 @@ const ProfilePage = () => {
   // Stats và history data
   const [stats, setStats] = useState([]);
   const [history, setHistory] = useState([]);
+  const [achievements, setAchievements] = useState([]);
+
   const [loadingStats, setLoadingStats] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
@@ -140,6 +142,22 @@ const ProfilePage = () => {
     }
   };
 
+  const fetchAchievement = async () => {
+    try {
+      setLoading(true);
+      const response = await profileService.getAchievement();
+      setAchievements(response.data);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể tải thông tin thành tựu",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -245,6 +263,12 @@ const ProfilePage = () => {
     setAvatarPreview(null);
   };
 
+  const formatTime = (timestamp) => {
+    if (!timestamp) return "";
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString("vi-VN", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto p-6">
@@ -321,6 +345,40 @@ const ProfilePage = () => {
               </>
             )}
           </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <p>Thành tựu</p>
+
+          {loading ? (
+            <div className="text-center py-8">Đang tải...</div>
+          ) : (
+            <>
+              {achievements.length > 0 && !loading ? (
+                <>
+                  {achievements.map((achievement, i) => (
+                    <div
+                      key={i}
+                      className={`flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-md ${
+                        false ? "bg-primary/5 border-primary" : "hover:bg-accent"
+                      }`}
+                    >
+                      <Avatar>
+                        <AvatarImage src={achievement.icon_url || "/placeholder.svg"} />
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="font-semibold">{achievement.name}</div>
+                        <div className="text-sm text-muted-foreground">{formatTime(achievement.earned_at) ?? 0}</div>
+                      </div>
+                      <div>{achievement.description}</div>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <div className="text-center py-3 text-muted-foreground">Chưa có thành tựu</div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Tabs cho Thống kê và Lịch sử */}

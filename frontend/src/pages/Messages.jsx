@@ -4,8 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Search, Send } from "lucide-react";
+import { Search, Send, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { friendService } from "@/services/friendService";
@@ -57,22 +56,6 @@ export default function MessagesPage() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
-
-  // const loadMoreFriend = async () => {
-  //   try {
-  //     setLoading(true);
-  //     setError(null);
-  //     const response = await friendService.getFriends();
-  //     if (response?.data) {
-  //       // setFriends((prev) => [...prev, ...response.data]);
-  //     }
-  //   } catch (err) {
-  //     console.error("Error loading friends:", err);
-  //     setError("Không thể tải danh sách bạn bè");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 
   const loadFriends = async () => {
     try {
