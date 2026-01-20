@@ -10,7 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { friendService } from "@/services/friendService";
 import { messageService } from "@/services/messageService";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 3;
 
 export default function MessagesPage() {
   const { user } = useAuth();

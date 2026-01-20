@@ -433,10 +433,10 @@ export default function FriendsPage() {
                         <div className="flex items-center gap-3">
                           <Avatar className="cursor-pointer" onClick={() => navigate(`/profile/${user.id}`)}>
                             <AvatarImage src={user.avatar || "/placeholder.svg"} />
-                            <AvatarFallback>{user.name[0]?.toUpperCase()}</AvatarFallback>
+                            <AvatarFallback>{user.username[0]?.toUpperCase()}</AvatarFallback>
                           </Avatar>
                           <div>
-                            <div className="font-semibold">{user.name}</div>
+                            <div className="font-semibold">{user.username}</div>
                             <div className="text-sm text-muted-foreground">{user.email}</div>
                           </div>
                         </div>

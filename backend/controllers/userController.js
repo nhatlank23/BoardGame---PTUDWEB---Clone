@@ -18,7 +18,7 @@ module.exports = {
         .where(function () {
           this.where("username", "ilike", term).orWhere("email", "ilike", term);
         })
-        .select("id", "username", "email", "avatar_url")
+        .select("id", "username", "email", "avatar_url", "created_at", "role", "status")
         .limit(10);
 
       if (currentUserId) {
@@ -30,9 +30,12 @@ module.exports = {
 
       const users = rows.map((r) => ({
         id: r.id,
-        name: r.username,
+        username: r.username,
         email: r.email,
         avatar: r.avatar_url || null,
+        created_at: r.created_at,
+        role: r.role,
+        status: r.status,
       }));
 
       return res.json({ data: users });
