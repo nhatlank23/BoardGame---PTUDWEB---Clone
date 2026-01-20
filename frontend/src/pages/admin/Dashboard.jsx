@@ -1,40 +1,46 @@
 import { useState, useEffect } from "react"
-import { Header } from "@/components/header"
-import { Sidebar } from "@/components/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Users, UserCheck, UserPlus, Gamepad2 } from "lucide-react"
 import { adminService } from "@/services/adminService"
 
 export default function Dashboard() {
-  const [stats] = useState([
-    { label: "Tổng User", value: "1,245", icon: Users },
-    { label: "Online", value: "342", icon: UserCheck },
-    { label: "User mới", value: "89", icon: UserPlus },
-    { label: "Tổng game", value: "6", icon: Gamepad2 },
-  ])
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    onlineUsers: 0,
+    newUsers: 0,
+    totalGames: 0,
+  })
 
   const [gamesPlayed, setGamesPlayed] = useState([])
   const [hourlyActivity, setHourlyActivity] = useState([])
-  const [selectedGame, setSelectedGame] = useState("all")
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadDashboardData()
   }, [])
 
-  useEffect(() => {
-    loadHourlyActivity(selectedGame === "all" ? null : selectedGame)
-  }, [selectedGame])
-
   const loadDashboardData = async () => {
     try {
       setLoading(true)
-      const gamesResponse = await adminService.getGamesPlayed()
+      
+      const [statsResponse, gamesResponse] = await Promise.all([
+        adminService.getStatsSummary(),
+        adminService.getGamesPlayed(),
+      ])
+
+      console.log("Stats response:", statsResponse)
+      console.log("Games played response:", gamesResponse)
+
+      if (statsResponse?.data) {
+        setStats(statsResponse.data)
+      }
+
       if (gamesResponse?.data) {
+        console.log("Setting gamesPlayed:", gamesResponse.data)
         setGamesPlayed(gamesResponse.data)
       }
-      await loadHourlyActivity(null)
+
+      await loadHourlyActivity()
     } catch (err) {
       console.error("Error loading dashboard data:", err)
     } finally {
@@ -42,10 +48,13 @@ export default function Dashboard() {
     }
   }
 
-  const loadHourlyActivity = async (gameId) => {
+  const loadHourlyActivity = async () => {
     try {
-      const response = await adminService.getHourlyActivity(gameId)
+      const response = await adminService.getHourlyActivity(null)
+      console.log("Hourly activity response:", response)
       if (response?.data) {
+        console.log("Setting hourlyActivity:", response.data)
+        console.log("Array length:", response.data.length)
         setHourlyActivity(response.data)
       }
     } catch (err) {
@@ -58,12 +67,32 @@ export default function Dashboard() {
     return max
   }
 
-  return (
-    <div className="min-h-screen">
-      <Header />
-      <Sidebar isAdmin />
+  const getTimeSlots = () => {
+    if (hourlyActivity.length === 0) return []
 
-      <main className="ml-64 mt-16 p-8">
+    const slots = [
+      { label: "0h - 7h", range: [0, 6], icon: "🌙" },
+      { label: "7h - 12h", range: [7, 11], icon: "☀️" },
+      { label: "12h - 17h", range: [12, 16], icon: "🌤️" },
+      { label: "17h - 20h", range: [17, 19], icon: "🌆" },
+      { label: "20h - 24h", range: [20, 23], icon: "🌃" },
+    ]
+
+    return slots.map(slot => {
+      const count = hourlyActivity
+        .filter(h => h.hour >= slot.range[0] && h.hour <= slot.range[1])
+        .reduce((sum, h) => sum + h.count, 0)
+      
+      return {
+        label: slot.label,
+        icon: slot.icon,
+        count
+      }
+    })
+  }
+
+  return (
+      <main className="p-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <h1 className="text-4xl font-bold mb-2">Dashboard</h1>
@@ -72,20 +101,45 @@ export default function Dashboard() {
 
           {/* Stats Grid */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-            {stats.map((stat) => {
-              const Icon = stat.icon
-              return (
-                <Card key={stat.label}>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
-                    <Icon className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold">{stat.value}</div>
-                  </CardContent>
-                </Card>
-              )
-            })}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Tổng User</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{loading ? "..." : stats.totalUsers}</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Online</CardTitle>
+                <UserCheck className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{loading ? "..." : stats.onlineUsers}</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">User mới (7 ngày)</CardTitle>
+                <UserPlus className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{loading ? "..." : stats.newUsers}</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Tổng game</CardTitle>
+                <Gamepad2 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{loading ? "..." : stats.totalGames}</div>
+              </CardContent>
+            </Card>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-6">
@@ -98,6 +152,8 @@ export default function Dashboard() {
               <CardContent>
                 {loading ? (
                   <div className="text-center text-muted-foreground py-8">Đang tải...</div>
+                ) : gamesPlayed.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">Chưa có dữ liệu</div>
                 ) : (
                   <div className="space-y-4">
                     {gamesPlayed.map((game) => {
@@ -126,52 +182,43 @@ export default function Dashboard() {
             {/* Activity Chart */}
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Hoạt động theo giờ</CardTitle>
-                    <CardDescription>Thời điểm chơi trong ngày</CardDescription>
-                  </div>
-                  <Select value={selectedGame} onValueChange={setSelectedGame}>
-                    <SelectTrigger className="w-[160px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tất cả game</SelectItem>
-                      {gamesPlayed.map((game) => (
-                        <SelectItem key={game.id} value={String(game.id)}>
-                          {game.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <CardTitle>Hoạt động theo giờ (7 ngày)</CardTitle>
+                <CardDescription>Tổng lượt chơi theo từng giờ trong ngày</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[240px] flex items-end justify-between gap-1">
-                  {hourlyActivity.map((data) => {
-                    const maxCount = getMaxCount()
-                    const height = maxCount > 0 ? (data.count / maxCount) * 100 : 0
-                    return (
-                      <div key={data.hour} className="flex-1 flex flex-col items-center gap-2">
-                        <div
-                          className="w-full bg-primary/20 hover:bg-primary/40 rounded-t transition-all cursor-pointer relative group"
-                          style={{ height: `${Math.max(height, 2)}%` }}
-                        >
-                          <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                            {data.count} lượt
+                {hourlyActivity.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">Chưa có dữ liệu</div>
+                ) : (
+                  <div className="space-y-3">
+                    {getTimeSlots().map((slot, index) => {
+                      const maxCount = Math.max(...getTimeSlots().map(s => s.count), 1)
+                      const width = maxCount > 0 ? (slot.count / maxCount) * 100 : 0
+                      return (
+                        <div key={index} className="flex items-center gap-3">
+                          <div className="flex items-center gap-2 w-28">
+                            <span className="text-lg">{slot.icon}</span>
+                            <span className="text-xs font-medium text-muted-foreground">{slot.label}</span>
+                          </div>
+                          <div className="flex-1 bg-muted rounded-full h-8 overflow-hidden">
+                            <div
+                              className="h-full bg-primary rounded-full transition-all flex items-center justify-end pr-3 group hover:bg-primary/80"
+                              style={{ width: `${Math.max(width, 3)}%` }}
+                            >
+                              <span className="text-sm font-bold text-primary-foreground">
+                                {slot.count}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                        <span className="text-xs text-muted-foreground">{data.hour}h</span>
-                      </div>
-                    )
-                  })}
-                </div>
+                      )
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
         </div>
       </main>
-    </div>
   )
 }
 

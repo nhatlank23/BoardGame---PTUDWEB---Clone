@@ -1,7 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Header } from "@/components/header";
-import { Sidebar } from "@/components/sidebar";
 import { Loader2 } from "lucide-react";
 import { GameController } from "@/components/games/GameController";
 import { gameService } from "@/services/gameService";
@@ -95,9 +93,17 @@ const MATRIX_ICONS = {
 export default function HomePage() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const containerRef = useRef(null);
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState(0);
+
+  // Auto focus container on mount
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.focus();
+    }
+  }, []);
 
   useEffect(() => {
     const fetchGames = async () => {
@@ -149,14 +155,20 @@ export default function HomePage() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (loading || games.length === 0) return;
+      
+      console.log("Key pressed:", e.key); // Debug log
+      
       switch (e.key) {
         case "ArrowRight":
+          e.preventDefault();
           handleNext();
           break;
         case "ArrowLeft":
+          e.preventDefault();
           handlePrev();
           break;
         case "Enter":
+          e.preventDefault();
           handleEnter();
           break;
         case "h":
@@ -203,11 +215,12 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-hidden font-sans">
-      <Header />
-      <Sidebar />
-
-      <main className="ml-64 mt-16 p-8 h-[calc(100vh-64px)] flex flex-col">
+    <div 
+      ref={containerRef}
+      className="bg-background text-foreground overflow-hidden font-sans outline-none" 
+      tabIndex={0}
+    >
+      <main className="p-8 flex flex-col">
         <div className="max-w-7xl mx-auto w-full grid lg:grid-cols-2 gap-12 items-center my-auto">
           <div className="flex flex-col items-center space-y-8">
             <div className="flex flex-col items-center">

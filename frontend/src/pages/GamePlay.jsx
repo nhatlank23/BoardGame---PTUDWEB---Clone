@@ -1,8 +1,6 @@
 import { useParams } from "react-router-dom";
 import DrawingGame from "@/components/games/DrawingGame";
 import TicTacToeGame from "@/components/games/TicTacToeGame";
-import { Header } from "@/components/header";
-import { Sidebar } from "@/components/sidebar";
 import { GameStatsCard } from "@/components/games/GameStatsCard";
 import { GameController } from "@/components/games/GameController";
 import SnakeGame from "@/components/games/SnakeGame";
@@ -32,11 +30,7 @@ export default function GamePlay() {
   };
 
   return (
-    <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
-      <Header />
-      <Sidebar />
-
-      <main className="flex-1 pt-16 pl-64 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden h-full">
         <div className="flex-1 grid grid-cols-12 gap-6 p-6 overflow-hidden">
 
           <div className="col-span-8 flex flex-col bg-card rounded-3xl border border-border shadow-inner relative overflow-hidden">
@@ -61,6 +55,5 @@ export default function GamePlay() {
 
         </div>
       </main>
-    </div>
   );
 }

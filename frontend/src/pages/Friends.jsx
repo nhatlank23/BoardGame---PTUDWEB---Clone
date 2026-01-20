@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Header } from "@/components/header";
-import { Sidebar } from "@/components/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -227,11 +225,7 @@ export default function FriendsPage() {
   };
 
   return (
-    <div className="min-h-screen">
-      <Header />
-      <Sidebar />
-
-      <main className="ml-64 mt-16 p-8">
+      <main className="p-8">
         <div className="max-w-5xl mx-auto">
           <div className="mb-8">
             <h1 className="text-4xl font-bold mb-2">Bạn bè</h1>
@@ -275,13 +269,24 @@ export default function FriendsPage() {
                       {friends.map((friend) => (
                         <div key={friend.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors">
                           <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarImage src={friend.avatar || "/placeholder.svg"} />
-                              <AvatarFallback>{friend.name[0]?.toUpperCase()}</AvatarFallback>
-                            </Avatar>
+                            <div className="relative">
+                              <Avatar>
+                                <AvatarImage src={friend.avatar || "/placeholder.svg"} />
+                                <AvatarFallback>{friend.name[0]?.toUpperCase()}</AvatarFallback>
+                              </Avatar>
+                              {friend.status === "Online" && (
+                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full" />
+                              )}
+                            </div>
                             <div>
                               <div className="font-semibold">{friend.name}</div>
-                              <div className="text-sm text-muted-foreground">{friend.email}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {friend.status === "Online" ? (
+                                  <span className="text-green-500 font-medium">● Online</span>
+                                ) : (
+                                  friend.email
+                                )}
+                              </div>
                             </div>
                           </div>
                           <div className="flex gap-2">
@@ -419,6 +424,5 @@ export default function FriendsPage() {
           </Tabs>
         </div>
       </main>
-    </div>
   );
 }

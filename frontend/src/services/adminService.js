@@ -1,6 +1,10 @@
 import { apiClient } from "@/lib/apiClient";
 
 export const adminService = {
+  async getStatsSummary() {
+    return await apiClient.get("/admin/stats/summary");
+  },
+
   async getAllUsers() {
     return await apiClient.get("/admin/users");
   },

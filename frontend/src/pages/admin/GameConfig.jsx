@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { Header } from "@/components/header";
-import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -132,11 +130,7 @@ export default function GameConfig() {
   };
 
   return (
-    <div className="min-h-screen">
-      <Header />
-      <Sidebar isAdmin />
-
-      <main className="ml-64 mt-16 p-8">
+      <main className="p-8">
         <div className="max-w-4xl mx-auto">
           <Button variant="ghost" asChild className="mb-6">
             <Link to="/admin/games">
@@ -223,6 +217,5 @@ export default function GameConfig() {
           )}
         </div>
       </main>
-    </div>
   );
 }

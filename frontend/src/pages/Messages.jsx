@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import { Header } from "@/components/header";
-import { Sidebar } from "@/components/sidebar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -114,13 +112,7 @@ export default function MessagesPage() {
   );
 
   return (
-    <div className="h-screen flex flex-col">
-      <Header />
-
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        
-        <main className="flex-1 ml-64 mt-16 pl-8 flex flex-col overflow-hidden">
+        <main className="flex flex-col overflow-hidden h-full px-24">
           <div className="flex-shrink-0 p-8 pb-0">
             <h1 className="text-4xl font-bold">Tin nhắn</h1>
           </div>
@@ -156,6 +148,9 @@ export default function MessagesPage() {
                               <AvatarImage src={friend.avatar || "/placeholder.svg"} />
                               <AvatarFallback>{friend.name?.[0]?.toUpperCase() || "?"}</AvatarFallback>
                             </Avatar>
+                            {friend.status === "Online" && (
+                              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full" />
+                            )}
                           </div>
                           <div className="flex-1 text-left">
                             <div className="flex items-center justify-between mb-1">
@@ -174,13 +169,24 @@ export default function MessagesPage() {
                       <>
                         {/* Chat Header */}
                         <div className="flex-shrink-0 px-4 py-3 border-b flex items-center gap-3 h-[73px]">
-                          <Avatar>
-                            <AvatarImage src={selectedFriend.avatar || "/placeholder.svg"} />
-                            <AvatarFallback>{selectedFriend.name?.[0]?.toUpperCase() || "?"}</AvatarFallback>
-                          </Avatar>
+                          <div className="relative">
+                            <Avatar>
+                              <AvatarImage src={selectedFriend.avatar || "/placeholder.svg"} />
+                              <AvatarFallback>{selectedFriend.name?.[0]?.toUpperCase() || "?"}</AvatarFallback>
+                            </Avatar>
+                            {selectedFriend.status === "Online" && (
+                              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full" />
+                            )}
+                          </div>
                           <div>
                             <div className="font-semibold">{selectedFriend.name}</div>
-                            <div className="text-sm text-muted-foreground">{selectedFriend.email}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {selectedFriend.status === "Online" ? (
+                                <span className="text-green-500 font-medium">● Online</span>
+                              ) : (
+                                selectedFriend.email
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -225,7 +231,5 @@ export default function MessagesPage() {
             </Card>
           </div>
         </main>
-      </div>
-    </div>
   );
 }

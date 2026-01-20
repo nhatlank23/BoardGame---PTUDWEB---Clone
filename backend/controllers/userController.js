@@ -59,14 +59,14 @@ module.exports = {
         .where("friendships.requester_id", userId)
         .andWhere("friendships.status", "accepted")
         .join("users", "users.id", "friendships.addressee_id")
-        .select("users.id", "users.username", "users.email", "users.avatar_url")
+        .select("users.id", "users.username", "users.email", "users.avatar_url", "users.status")
         .limit(100);
 
       const friendsAsAddressee = await db("friendships")
         .where("friendships.addressee_id", userId)
         .andWhere("friendships.status", "accepted")
         .join("users", "users.id", "friendships.requester_id")
-        .select("users.id", "users.username", "users.email", "users.avatar_url")
+        .select("users.id", "users.username", "users.email", "users.avatar_url", "users.status")
         .limit(100);
 
       const allFriends = [...friendsAsRequester, ...friendsAsAddressee];
@@ -76,6 +76,7 @@ module.exports = {
         name: r.username,
         email: r.email,
         avatar: r.avatar_url || null,
+        status: r.status || "Offline",
       }));
 
       return res.json({ data: friends });

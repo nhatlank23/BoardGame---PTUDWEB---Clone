@@ -2,6 +2,47 @@ const db = require("../configs/db");
 const userModel = require("../models/userModel");
 
 module.exports = {
+  // GET /api/admin/stats/summary
+  getStatsSummary: async (req, res) => {
+    try {
+      const requesterId = req.user?.id || req.userId;
+      if (!requesterId || req.user?.role !== "admin") {
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
+      }
+
+      // Tổng số user
+      const totalUsersResult = await db("users").count("* as count").first();
+      const totalUsers = Number(totalUsersResult.count);
+
+      // User online (status = 'Online')
+      const onlineUsersResult = await db("users").where("status", "Online").count("* as count").first();
+      const onlineUsers = Number(onlineUsersResult.count);
+
+      // User mới (7 ngày gần nhất)
+      const newUsersResult = await db("users")
+        .where("created_at", ">=", db.raw("NOW() - INTERVAL '7 days'"))
+        .count("* as count")
+        .first();
+      const newUsers = Number(newUsersResult.count);
+
+      // Tổng số game
+      const totalGamesResult = await db("games").count("* as count").first();
+      const totalGames = Number(totalGamesResult.count);
+
+      return res.json({
+        data: {
+          totalUsers,
+          onlineUsers,
+          newUsers,
+          totalGames,
+        },
+      });
+    } catch (err) {
+      console.error("getStatsSummary error:", err);
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
+    }
+  },
+
   // GET /api/admin/users
   getAllUsers: async (req, res) => {
     try {
@@ -64,10 +105,13 @@ module.exports = {
           .json({ status: "error", message: "Unauthorized" });
       }
 
-      const gamesPlayed = await db("game_logs")
+      const gamesPlayed = await db("games")
         .select("games.id", "games.name", "games.slug")
         .count("game_logs.id as plays")
-        .join("games", "games.id", "game_logs.game_id")
+        .leftJoin("game_logs", function() {
+          this.on("games.id", "=", "game_logs.game_id")
+            .andOn(db.raw("game_logs.played_at >= NOW() - INTERVAL '7 days'"))
+        })
         .groupBy("games.id", "games.name", "games.slug")
         .orderBy("plays", "desc");
 
@@ -80,7 +124,7 @@ module.exports = {
     }
   },
 
-  // GET /api/admin/stats/hourly-activity?game_id=X
+  // GET /api/admin/stats/hourly-activity?game_id=X&days=7
   getHourlyActivity: async (req, res) => {
     try {
       const requesterId = req.user?.id || req.userId;
@@ -91,11 +135,12 @@ module.exports = {
       }
 
       const gameId = req.query.game_id;
+      const days = parseInt(req.query.days) || 7; // Default 7 ngày
 
       let query = db("game_logs")
         .select(db.raw("EXTRACT(HOUR FROM played_at) as hour"))
         .count("* as count")
-        .whereRaw("DATE(played_at) = CURRENT_DATE")
+        .whereRaw(`played_at >= NOW() - INTERVAL '${days} days'`)
         .groupBy(db.raw("EXTRACT(HOUR FROM played_at)"))
         .orderBy("hour");
 
