@@ -6,14 +6,29 @@ export const profileService = {
     return apiClient.get("/auth/me");
   },
 
-  // Lấy thống kê game
+  // Lấy thông tin user khác theo ID
+  async getUserProfile(userId) {
+    return apiClient.get(`/users/${userId}/profile`);
+  },
+
+  // Lấy thống kê game của user hiện tại
   async getStats() {
     return apiClient.get("/users/stats");
   },
 
-  // Lấy lịch sử chơi
+  // Lấy thống kê game của user khác theo ID
+  async getUserStats(userId) {
+    return apiClient.get(`/users/${userId}/stats`);
+  },
+
+  // Lấy lịch sử chơi của user hiện tại
   async getHistory(limit = 20) {
     return apiClient.get(`/users/history?limit=${limit}`);
+  },
+
+  // Lấy lịch sử chơi của user khác theo ID
+  async getUserHistory(userId, limit = 20) {
+    return apiClient.get(`/users/${userId}/history?limit=${limit}`);
   },
 
   // Cập nhật profile (username và/hoặc avatar_url)
@@ -44,5 +59,10 @@ export const profileService = {
     }
 
     return data.data;
+  },
+
+  // Get achievement
+  async getAchievement(page = 1, pageSize = 50) {
+    return apiClient.get(`/users/achievements?page=${page}&pageSize=${pageSize}`);
   },
 };

@@ -56,22 +56,6 @@ export default function MessagesPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // const loadMoreFriend = async () => {
-  //   try {
-  //     setLoading(true);
-  //     setError(null);
-  //     const response = await friendService.getFriends();
-  //     if (response?.data) {
-  //       // setFriends((prev) => [...prev, ...response.data]);
-  //     }
-  //   } catch (err) {
-  //     console.error("Error loading friends:", err);
-  //     setError("Không thể tải danh sách bạn bè");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
   const loadFriends = async () => {
     try {
       setIsLoadingFriends(true);
@@ -130,7 +114,7 @@ export default function MessagesPage() {
   };
 
   const filteredFriends = friends.filter(
-    (friend) => friend.name?.toLowerCase().includes(searchQuery.toLowerCase()) || friend.email?.toLowerCase().includes(searchQuery.toLowerCase()),
+    (friend) => friend.name?.toLowerCase().includes(searchQuery.toLowerCase()) || friend.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -162,7 +146,7 @@ export default function MessagesPage() {
                       onClick={() => setSelectedFriend(friend)}
                       className={cn(
                         "w-full flex items-center gap-3 px-4 py-3 h-[73px] border-b hover:bg-accent transition-colors",
-                        selectedFriend?.id === friend.id && "bg-accent",
+                        selectedFriend?.id === friend.id && "bg-accent"
                       )}
                     >
                       <div className="relative">
@@ -220,11 +204,7 @@ export default function MessagesPage() {
                       <div>
                         <div className="font-semibold">{selectedFriend.name}</div>
                         <div className="text-sm text-muted-foreground">
-                          {selectedFriend.status === "Online" ? (
-                            <span className="text-green-500 font-medium">● Online</span>
-                          ) : (
-                            selectedFriend.email
-                          )}
+                          {selectedFriend.status === "Online" ? <span className="text-green-500 font-medium">● Online</span> : selectedFriend.email}
                         </div>
                       </div>
                     </div>
@@ -242,7 +222,12 @@ export default function MessagesPage() {
                         const isMe = message.sender_id === user?.id;
                         return (
                           <div key={message.id} className={cn("flex", isMe ? "justify-end" : "justify-start")}>
-                            <div className={cn("max-w-[70%] rounded-2xl px-4 py-2 shadow-sm", isMe ? "bg-primary text-primary-foreground rounded-tr-none" : "bg-muted rounded-tl-none")}>
+                            <div
+                              className={cn(
+                                "max-w-[70%] rounded-2xl px-4 py-2 shadow-sm",
+                                isMe ? "bg-primary text-primary-foreground rounded-tr-none" : "bg-muted rounded-tl-none"
+                              )}
+                            >
                               <div className="text-sm">{message.content}</div>
                               <div className={cn("text-[10px] mt-1 opacity-70 flex justify-end", isMe ? "text-primary-foreground" : "text-muted-foreground")}>
                                 {formatTime(message.created_at)}
@@ -285,4 +270,3 @@ export default function MessagesPage() {
     </div>
   );
 }
-

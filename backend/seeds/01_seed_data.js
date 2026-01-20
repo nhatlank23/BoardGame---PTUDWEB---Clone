@@ -301,7 +301,7 @@ exports.seed = async function (knex) {
         game_id: randomGameId,
         played_at: playedAt,
         score: randomScore,
-        duration: randomDuration
+        duration: randomDuration,
       });
     }
   }

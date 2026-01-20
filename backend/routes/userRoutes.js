@@ -353,12 +353,80 @@ router.get("/history", userController.getUserHistory);
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     responses:
  *       200:
  *         description: Thông tin người dùng
  */
+
+router.get("/achievements", userController.getUserAchievements);
+
 router.get("/:id", userController.getUserById);
+
+/**
+ * @openapi
+ * /api/users/{id}/profile:
+ *   get:
+ *     tags: [Users]
+ *     summary: Lấy profile người dùng theo ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Profile người dùng
+ */
+router.get("/:id/profile", userController.getUserById);
+
+/**
+ * @openapi
+ * /api/users/{id}/stats:
+ *   get:
+ *     tags: [Users - Stats]
+ *     summary: Lấy thống kê game của người dùng theo ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Thống kê game
+ */
+router.get("/:id/stats", userController.getUserStatsByUserId);
+
+/**
+ * @openapi
+ * /api/users/{id}/history:
+ *   get:
+ *     tags: [Users - Stats]
+ *     summary: Lấy lịch sử đấu của người dùng theo ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Số lượng bản ghi (mặc định 20)
+ *     responses:
+ *       200:
+ *         description: Lịch sử đấu
+ */
+router.get("/:id/history", userController.getUserHistoryByUserId);
 
 /**
  * @openapi
@@ -373,11 +441,10 @@ router.get("/:id", userController.getUserById);
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     responses:
  *       200:
  *         description: Danh sách thành tích
  */
-router.get("/:id/achievements", userController.getUserAchievements);
 
 module.exports = router;

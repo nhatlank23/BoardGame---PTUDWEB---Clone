@@ -8,13 +8,18 @@ class LeaderboardsModel {
       .join("games", "games.id", "play_history.game_id")
       .join("users", "users.id", "play_history.user_id")
       .select(
+        "users.id as user_id",
         "users.username as name",
         "users.avatar_url as avatar_url",
         db.raw("COUNT(*) as played"),
         db.raw("MAX(play_history.score) as record"),
         db.raw("AVG(play_history.score)::INTEGER as avg_score"),
-        db.raw("SUM(CASE WHEN play_history.score = 1 THEN 1 ELSE 0 END) as wins"),
-        db.raw("ROUND(SUM(CASE WHEN play_history.score = 1 THEN 1 ELSE 0 END)::NUMERIC / COUNT(*) * 100, 1) as win_rate"),
+        db.raw(
+          "SUM(CASE WHEN play_history.score = 1 THEN 1 ELSE 0 END) as wins"
+        ),
+        db.raw(
+          "ROUND(SUM(CASE WHEN play_history.score = 1 THEN 1 ELSE 0 END)::NUMERIC / COUNT(*) * 100, 1) as win_rate"
+        )
       )
       .groupBy("users.id", "users.username")
       .orderBy("avg_score", "desc")
@@ -25,26 +30,43 @@ class LeaderboardsModel {
     return leaderboards;
   }
 
-  static async getTopRankingOfFriendByUserId_GameId(userId, gameId, page = 1, pageSize = 50) {
+  static async getTopRankingOfFriendByUserId_GameId(
+    userId,
+    gameId,
+    page = 1,
+    pageSize = 50
+  ) {
     const leaderboards = await db("play_history")
       .join("games", "games.id", "play_history.game_id")
       .join("users", "users.id", "play_history.user_id")
       .join("friendships", function () {
-        this.on("friendships.requester_id", "=", "play_history.user_id").orOn("friendships.addressee_id", "=", "play_history.user_id");
+        this.on("friendships.requester_id", "=", "play_history.user_id").orOn(
+          "friendships.addressee_id",
+          "=",
+          "play_history.user_id"
+        );
       })
-      .where("friendships.status", "accepted")
-      .andWhere(function () {
-        this.where("friendships.requester_id", userId).orWhere("friendships.addressee_id", userId);
+      // .where("friendships.status", "accepted")
+      .Where(function () {
+        this.where("friendships.requester_id", userId).orWhere(
+          "friendships.addressee_id",
+          userId
+        );
       })
       .andWhere("play_history.game_id", gameId)
       .select(
+        "users.id as user_id",
         "users.username as name",
         "users.avatar_url as avatar_url",
         db.raw("COUNT(*) as played"),
         db.raw("MAX(play_history.score) as record"),
         db.raw("AVG(play_history.score)::INTEGER as avg_score"),
-        db.raw("SUM(CASE WHEN play_history.score = 1 THEN 1 ELSE 0 END) as wins"),
-        db.raw("ROUND(SUM(CASE WHEN play_history.score = 1 THEN 1 ELSE 0 END)::NUMERIC / COUNT(*) * 100, 1) as win_rate"),
+        db.raw(
+          "SUM(CASE WHEN play_history.score = 1 THEN 1 ELSE 0 END) as wins"
+        ),
+        db.raw(
+          "ROUND(SUM(CASE WHEN play_history.score = 1 THEN 1 ELSE 0 END)::NUMERIC / COUNT(*) * 100, 1) as win_rate"
+        )
       )
       .groupBy("users.id", "users.username", "users.avatar_url")
       .orderBy("avg_score", "desc")

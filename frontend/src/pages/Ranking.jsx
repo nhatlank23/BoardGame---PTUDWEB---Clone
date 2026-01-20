@@ -2,6 +2,8 @@ import { useEffect, useLayoutEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "../components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Toast } from "../components/ui/toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -92,9 +94,6 @@ export default function RankingPage() {
         const response = await gameService.getActiveGames();
         if (response.status === "success") {
           setAllGames(response.data);
-          if (response.data.length > 0) {
-            setSelectedGame(response.data[0].id);
-          }
         } else {
           Toast({ title: "Lỗi", description: "Không tải được dữ liệu game", variant: "destructive" });
         }
@@ -111,6 +110,7 @@ export default function RankingPage() {
       try {
         setLoading(true);
         const response = await rankingService.getTopFriendLeaderBoard(selectedGame, pageFriendsLeaderboards, PAGE_SIZE);
+        // console.log("Friend Leaderboard response:", response);
         if (response.status === "success") {
           setFriendLeaderboard(response.data);
         } else {
@@ -191,10 +191,11 @@ export default function RankingPage() {
                         {leaderboards.map((leaderboard, i) => (
                           <Link
                             key={i}
-                            to="/profile"
+                            to={`/profile/${leaderboard.user_id}`}
                             // Todo: kiểm tra user hiện tại có trên bảng không
-                            className={`flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-md ${false ? "bg-primary/5 border-primary" : "hover:bg-accent"
-                              }`}
+                            className={`flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-md ${
+                              false ? "bg-primary/5 border-primary" : "hover:bg-accent"
+                            }`}
                           >
                             <div className="w-8 flex justify-center">{getRankIcon(i + 1)}</div>
                             <Avatar>
@@ -206,15 +207,14 @@ export default function RankingPage() {
                             </div>
                             <div className="text-right">
                               <>
-                                {Math.abs(leaderboard.avg_score) <= 1 ? (
+                                {leaderboard.avg_score === 1 || leaderboard.avg_score === -1 ? (
                                   <>
-                                    <div className="text-2xl font-bold text-green-600">{leaderboard.win_rate ?? 0}%</div>
-                                    <div className="text-xs text-muted-foreground">Tỷ lệ thắng</div>
+                                    <div className="text-2xl font-bold">{leaderboard.win_rate ?? 0}%</div>
                                   </>
                                 ) : (
                                   <>
-                                    <div className="text-2xl font-bold text-blue-600">{leaderboard.avg_score?.toLocaleString()}</div>
-                                    <div className="text-xs text-muted-foreground">Điểm trung bình</div>
+                                    <div className="text-2xl font-bold">{leaderboard.avg_score}</div>
+                                    <div className="text-xs text-muted-foreground">điểm</div>
                                   </>
                                 )}
                               </>
@@ -261,10 +261,11 @@ export default function RankingPage() {
                         {friendLeaderboards.map((leaderboard, i) => (
                           <Link
                             key={i}
-                            to="/profile"
+                            to={`/profile/${leaderboard.user_id}`}
                             // Todo: kiểm tra user hiện tại có trên bảng không
-                            className={`flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-md ${false ? "bg-primary/5 border-primary" : "hover:bg-accent"
-                              }`}
+                            className={`flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-md ${
+                              false ? "bg-primary/5 border-primary" : "hover:bg-accent"
+                            }`}
                           >
                             <div className="w-8 flex justify-center">{getRankIcon(i + 1)}</div>
                             <Avatar>
@@ -276,15 +277,14 @@ export default function RankingPage() {
                             </div>
                             <div className="text-right">
                               <>
-                                {Math.abs(leaderboard.avg_score) <= 1 ? (
+                                {leaderboard.avg_score === 1 || leaderboard.avg_score === -1 ? (
                                   <>
-                                    <div className="text-2xl font-bold text-green-600">{leaderboard.win_rate ?? 0}%</div>
-                                    <div className="text-xs text-muted-foreground">Tỷ lệ thắng</div>
+                                    <div className="text-2xl font-bold">{leaderboard.win_rate ?? 0}%</div>
                                   </>
                                 ) : (
                                   <>
-                                    <div className="text-2xl font-bold text-blue-600">{leaderboard.avg_score?.toLocaleString()}</div>
-                                    <div className="text-xs text-muted-foreground">Điểm trung bình</div>
+                                    <div className="text-2xl font-bold">{leaderboard.avg_score}</div>
+                                    <div className="text-xs text-muted-foreground">điểm</div>
                                   </>
                                 )}
                               </>
