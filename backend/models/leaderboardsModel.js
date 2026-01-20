@@ -2,7 +2,7 @@ const db = require("../configs/db");
 
 class LeaderboardsModel {
   // Get top gamers by game ID
-  static async getTopGamersByGameId(gameId) {
+  static async getTopGamersByGameId(gameId, page = 1, pageSize = 50) {
     const leaderboards = await db("play_history")
       .where("play_history.game_id", gameId)
       .join("games", "games.id", "play_history.game_id")
@@ -18,12 +18,14 @@ class LeaderboardsModel {
       )
       .groupBy("users.id", "users.username")
       .orderBy("avg_score", "desc")
-      .orderBy("win_rate", "desc");
+      .orderBy("win_rate", "desc")
+      .limit(pageSize)
+      .offset((page - 1) * pageSize);
 
     return leaderboards;
   }
 
-  static async getTopRankingOfFriendByUserId_GameId(userId, gameId) {
+  static async getTopRankingOfFriendByUserId_GameId(userId, gameId, page = 1, pageSize = 50) {
     const leaderboards = await db("play_history")
       .join("games", "games.id", "play_history.game_id")
       .join("users", "users.id", "play_history.user_id")
@@ -47,7 +49,8 @@ class LeaderboardsModel {
       .groupBy("users.id", "users.username", "users.avatar_url")
       .orderBy("avg_score", "desc")
       .orderBy("win_rate", "desc")
-      .limit(10);
+      .limit(pageSize)
+      .offset((page - 1) * pageSize);
 
     return leaderboards;
   }

@@ -12,11 +12,17 @@ module.exports = {
         return res.status(401).json({ status: "error", message: "Unauthorized" });
       }
 
+      const PAGE_SIZE = 50;
+
       const gameId = req.params.game_id;
       if (!gameId) {
         return res.status(400).json({ status: "error", message: "Game ID is required" });
       }
-      const leaderboards = await leaderboardsModel.getTopGamersByGameId(gameId);
+
+      const page = req.query?.page ? Number(req.query?.page) : 1;
+      const pageSize = req.query?.pageSize ? Number(req.query?.pageSize) : PAGE_SIZE;
+
+      const leaderboards = await leaderboardsModel.getTopGamersByGameId(gameId, page, pageSize);
 
       return res.json({ status: "success", data: leaderboards });
     } catch (err) {
@@ -32,12 +38,17 @@ module.exports = {
         return res.status(401).json({ status: "error", message: "Unauthorized" });
       }
 
+      const PAGE_SIZE = 50;
+
       const gameId = req.params.game_id;
       if (!gameId) {
         return res.status(400).json({ status: "error", message: "Game ID is required" });
       }
 
-      const leaderboards = await leaderboardsModel.getTopRankingOfFriendByUserId_GameId(userId, gameId);
+      const page = req.query?.page ? Number(req.query?.page) : 1;
+      const pageSize = req.query?.pageSize ? Number(req.query?.pageSize) : PAGE_SIZE;
+
+      const leaderboards = await leaderboardsModel.getTopRankingOfFriendByUserId_GameId(userId, gameId, page, pageSize);
 
       return res.json({ status: "success", data: leaderboards });
     } catch (err) {

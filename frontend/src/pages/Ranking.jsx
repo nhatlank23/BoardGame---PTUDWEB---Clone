@@ -4,6 +4,7 @@ import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "../components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Toast } from "../components/ui/toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,6 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trophy, Medal, Award } from "lucide-react";
 import { gameService } from "../services/gameService";
 import { rankingService } from "../services/rankingService";
+import Pagination from "../components/ui/paginatio";
+
+const PAGE_SIZE = 50;
 
 export default function RankingPage() {
   const [selectedGame, setSelectedGame] = useState("");
@@ -18,6 +22,8 @@ export default function RankingPage() {
   const [allGames, setAllGames] = useState([]);
   const [leaderboards, setLeaderboards] = useState([]);
   const [friendLeaderboards, setFriendLeaderboard] = useState([]);
+  const [pageLeaderboards, setPageLeaderboards] = useState(1);
+  const [pageFriendsLeaderboards, setFriendsPageLeaderboards] = useState(1);
 
   // const topPlayers = [
   //   {
@@ -102,26 +108,10 @@ export default function RankingPage() {
   }, []);
 
   useEffect(() => {
-    const fetchLeaderboards = async () => {
-      try {
-        setLoading(true);
-        const response = await rankingService.getTopLeaderBoard(selectedGame);
-        if (response.status === "success") {
-          setLeaderboards(response.data);
-        } else {
-          Toast({ title: "Lỗi", description: "Không tải được dữ liệu bảng xếp hạng", variant: "destructive" });
-        }
-      } catch (error) {
-        Toast({ title: "Lỗi kết nối", description: "Vui lòng kiểm tra API", variant: "destructive" });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     const fetchFriendLeaderboards = async () => {
       try {
         setLoading(true);
-        const response = await rankingService.getTopFriendLeaderBoard(selectedGame);
+        const response = await rankingService.getTopFriendLeaderBoard(selectedGame, pageFriendsLeaderboards, PAGE_SIZE);
         if (response.status === "success") {
           setFriendLeaderboard(response.data);
         } else {
@@ -134,11 +124,28 @@ export default function RankingPage() {
       }
     };
 
-    fetchLeaderboards();
     fetchFriendLeaderboards();
-  }, [selectedGame]);
+  }, [selectedGame, pageFriendsLeaderboards]);
 
-  console.log(friendLeaderboards);
+  useEffect(() => {
+    const fetchLeaderboards = async () => {
+      try {
+        setLoading(true);
+        const response = await rankingService.getTopLeaderBoard(selectedGame, pageLeaderboards, PAGE_SIZE);
+        if (response.status === "success") {
+          setLeaderboards(response.data);
+        } else {
+          Toast({ title: "Lỗi", description: "Không tải được dữ liệu bảng xếp hạng", variant: "destructive" });
+        }
+      } catch (error) {
+        Toast({ title: "Lỗi kết nối", description: "Vui lòng kiểm tra API", variant: "destructive" });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaderboards();
+  }, [selectedGame, pageLeaderboards]);
 
   return (
     <div className="min-h-screen">
@@ -180,41 +187,65 @@ export default function RankingPage() {
                   <CardDescription>Bảng xếp hạng toàn hệ thống</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {leaderboards.map((leaderboard, i) => (
-                      <Link
-                        key={i}
-                        to="/profile"
-                        // Todo: kiểm tra user hiện tại có trên bảng không
-                        className={`flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-md ${
-                          false ? "bg-primary/5 border-primary" : "hover:bg-accent"
-                        }`}
-                      >
-                        <div className="w-8 flex justify-center">{getRankIcon(i + 1)}</div>
-                        <Avatar>
-                          <AvatarImage src={leaderboard.avatar_url || "/placeholder.svg"} />
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="font-semibold">{leaderboard.name}</div>
-                          <div className="text-sm text-muted-foreground">{leaderboard.wins ?? 0} trận thắng</div>
+                  {loading ? (
+                    <p className="text-center text-muted-foreground py-8">Đang tải...</p>
+                  ) : (
+                    <>
+                      {leaderboards.length > 0 ? (
+                        <div className="space-y-3">
+                          {leaderboards.map((leaderboard, i) => (
+                            <Link
+                              key={i}
+                              to="/profile"
+                              // Todo: kiểm tra user hiện tại có trên bảng không
+                              className={`flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-md ${
+                                false ? "bg-primary/5 border-primary" : "hover:bg-accent"
+                              }`}
+                            >
+                              <div className="w-8 flex justify-center">{getRankIcon(i + 1)}</div>
+                              <Avatar>
+                                <AvatarImage src={leaderboard.avatar_url || "/placeholder.svg"} />
+                              </Avatar>
+                              <div className="flex-1">
+                                <div className="font-semibold">{leaderboard.name}</div>
+                                <div className="text-sm text-muted-foreground">{leaderboard.wins ?? 0} trận thắng</div>
+                              </div>
+                              <div className="text-right">
+                                <>
+                                  {leaderboard.avg_score === 1 || leaderboard.avg_score === -1 ? (
+                                    <>
+                                      <div className="text-2xl font-bold">{leaderboard.win_rate ?? 0}%</div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className="text-2xl font-bold">{leaderboard.avg_score}</div>
+                                      <div className="text-xs text-muted-foreground">điểm</div>
+                                    </>
+                                  )}
+                                </>
+                              </div>
+                            </Link>
+                          ))}
                         </div>
-                        <div className="text-right">
-                          <>
-                            {leaderboard.avg_score === 1 || leaderboard.avg_score === -1 ? (
-                              <>
-                                <div className="text-2xl font-bold">{leaderboard.win_rate ?? 0}%</div>
-                              </>
-                            ) : (
-                              <>
-                                <div className="text-2xl font-bold">{leaderboard.avg_score}</div>
-                                <div className="text-xs text-muted-foreground">điểm</div>
-                              </>
-                            )}
-                          </>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+                      ) : (
+                        <p className="text-center text-muted-foreground py-8">Không có dữ liệu</p>
+                      )}
+                    </>
+                  )}
+                  {/* Phân trang */}
+                  <Pagination
+                    currentPage={pageLeaderboards}
+                    onNextPage={() => {
+                      if (leaderboards.length < PAGE_SIZE) return;
+                      setPageLeaderboards((prev) => prev + 1);
+                    }}
+                    onPrevPage={() => {
+                      setPageLeaderboards((prev) => {
+                        if (prev <= 1) return prev;
+                        return prev - 1;
+                      });
+                    }}
+                  ></Pagination>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -226,41 +257,65 @@ export default function RankingPage() {
                   <CardDescription>Xếp hạng của bạn bè</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {friendLeaderboards.map((leaderboard, i) => (
-                      <Link
-                        key={i}
-                        to="/profile"
-                        // Todo: kiểm tra user hiện tại có trên bảng không
-                        className={`flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-md ${
-                          false ? "bg-primary/5 border-primary" : "hover:bg-accent"
-                        }`}
-                      >
-                        <div className="w-8 flex justify-center">{getRankIcon(i + 1)}</div>
-                        <Avatar>
-                          <AvatarImage src={leaderboard.avatar_url || "/placeholder.svg"} />
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="font-semibold">{leaderboard.name}</div>
-                          <div className="text-sm text-muted-foreground">{leaderboard.wins ?? 0} trận thắng</div>
+                  {loading ? (
+                    <p className="text-center text-muted-foreground py-8">Đang tải...</p>
+                  ) : (
+                    <>
+                      {friendLeaderboards.length > 0 ? (
+                        <div className="space-y-3">
+                          {friendLeaderboards.map((leaderboard, i) => (
+                            <Link
+                              key={i}
+                              to="/profile"
+                              // Todo: kiểm tra user hiện tại có trên bảng không
+                              className={`flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-md ${
+                                false ? "bg-primary/5 border-primary" : "hover:bg-accent"
+                              }`}
+                            >
+                              <div className="w-8 flex justify-center">{getRankIcon(i + 1)}</div>
+                              <Avatar>
+                                <AvatarImage src={leaderboard.avatar_url || "/placeholder.svg"} />
+                              </Avatar>
+                              <div className="flex-1">
+                                <div className="font-semibold">{leaderboard.name}</div>
+                                <div className="text-sm text-muted-foreground">{leaderboard.wins ?? 0} trận thắng</div>
+                              </div>
+                              <div className="text-right">
+                                <>
+                                  {leaderboard.avg_score === 1 || leaderboard.avg_score === -1 ? (
+                                    <>
+                                      <div className="text-2xl font-bold">{leaderboard.win_rate ?? 0}%</div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className="text-2xl font-bold">{leaderboard.avg_score}</div>
+                                      <div className="text-xs text-muted-foreground">điểm</div>
+                                    </>
+                                  )}
+                                </>
+                              </div>
+                            </Link>
+                          ))}
                         </div>
-                        <div className="text-right">
-                          <>
-                            {leaderboard.avg_score === 1 || leaderboard.avg_score === -1 ? (
-                              <>
-                                <div className="text-2xl font-bold">{leaderboard.win_rate ?? 0}%</div>
-                              </>
-                            ) : (
-                              <>
-                                <div className="text-2xl font-bold">{leaderboard.avg_score}</div>
-                                <div className="text-xs text-muted-foreground">điểm</div>
-                              </>
-                            )}
-                          </>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+                      ) : (
+                        <p className="text-center text-muted-foreground py-8">Không có dữ liệu</p>
+                      )}
+                    </>
+                  )}
+                  {/* Phân trang */}
+                  <Pagination
+                    currentPage={pageFriendsLeaderboards}
+                    onNextPage={() => {
+                      if (friendLeaderboards.length < PAGE_SIZE) return;
+                      setFriendsPageLeaderboards((prev) => prev + 1);
+                    }}
+                    onPrevPage={() => {
+                      setFriendsPageLeaderboards((prev) => {
+                        if (prev <= 1) return prev;
+                        return prev - 1;
+                      });
+                    }}
+                  ></Pagination>
                 </CardContent>
               </Card>
             </TabsContent>
