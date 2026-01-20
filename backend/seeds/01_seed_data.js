@@ -307,4 +307,44 @@ exports.seed = async function (knex) {
   }
 
   await knex("game_logs").insert(gameLogs);
+
+  // 11. SEED GAME REVIEWS 
+  await knex("game_reviews").del();
+
+  const dbGames = await knex("games").select("id", "slug");
+  const gameMap = {};
+  dbGames.forEach(g => gameMap[g.slug] = g.id);
+
+  const reviews = [
+    // Review cho Caro 5 (Tập trung khen AI)
+    { user_id: userIds[11], game_id: gameMap["caro-5"], rating: 5, comment: "AI đánh quá gắt, không thể tìm được kẽ hở luôn!" },
+    { user_id: userIds[2], game_id: gameMap["caro-5"], rating: 4, comment: "Game hay, nhưng AI đôi khi chặn đường chéo hơi khó chịu 😂" },
+    { user_id: userIds[9], game_id: gameMap["caro-5"], rating: 5, comment: "Giao diện bàn cờ 10x10 nhìn rất rõ ràng." },
+
+    // Review cho Snake
+    { user_id: userIds[4], game_id: gameMap["snake"], rating: 5, comment: "Tốc độ 5 chơi phê thật sự, cảm giác rất mượt." },
+    { user_id: userIds[11], game_id: gameMap["snake"], rating: 3, comment: "Thỉnh thoảng bị lag nhẹ khi rắn quá dài, Admin check lại nhé." },
+
+    // Review cho Memory
+    { user_id: userIds[7], game_id: gameMap["memory"], rating: 5, comment: "Hình ảnh các thẻ bài rất đẹp, rèn luyện trí nhớ tốt." },
+    { user_id: userIds[10], game_id: gameMap["memory"], rating: 4, comment: "Âm thanh khi lật bài nghe rất vui tai." },
+
+    // Review cho Drawing
+    { user_id: userIds[11], game_id: gameMap["drawing"], rating: 5, comment: "Bộ màu 7 màu rất rực rỡ, vẽ trên ma trận LED nhìn lạ mắt." },
+    { user_id: userIds[1], game_id: gameMap["drawing"], rating: 4, comment: "Ước gì có thêm nút tẩy thì hoàn hảo hơn." },
+
+    // Review cho Match-3
+    { user_id: userIds[9], game_id: gameMap["match-3"], rating: 5, comment: "Game gây nghiện quá, chơi nãy giờ không dứt ra được." },
+    { user_id: userIds[8], game_id: gameMap["match-3"], rating: 5, comment: "Combo nổ kẹo nhìn sướng mắt thật sự!" },
+
+    // Review cho Caro 4 & Tic-tac-toe
+    { user_id: userIds[6], game_id: gameMap["caro-4"], rating: 4, comment: "Chế độ chơi nhanh rất phù hợp để giải trí ngắn." },
+    { user_id: userIds[3], game_id: gameMap["tic-tac-toe"], rating: 3, comment: "Game này dễ hòa quá, AI đánh thủ chắc quá trời." }
+  ];
+
+  await knex("game_reviews").insert(reviews.map(r => ({
+    ...r,
+    created_at: new Date(),
+    updated_at: new Date()
+  })));
 };

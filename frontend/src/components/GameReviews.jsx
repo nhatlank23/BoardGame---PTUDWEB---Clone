@@ -29,6 +29,7 @@ export function GameReviews({ gameId, currentUserId }) {
     try {
       setLoading(true);
       const response = await reviewService.getGameReviews(gameId, pageNum, 10);
+      console.log(response.data);
       setReviews(response.data.reviews);
       setPagination(response.data.pagination);
     } catch (error) {
