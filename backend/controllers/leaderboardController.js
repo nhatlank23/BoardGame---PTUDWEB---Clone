@@ -16,17 +16,32 @@ module.exports = {
       if (!gameId) {
         return res.status(400).json({ status: "error", message: "Game ID is required" });
       }
-
-      let leaderboards;
-      if (gameId === "all") {
-        leaderboards = await leaderboardsModel.getTopGamers();
-      } else {
-        leaderboards = await leaderboardsModel.getTopGamersByGameId(gameId);
-      }
+      const leaderboards = await leaderboardsModel.getTopGamersByGameId(gameId);
 
       return res.json({ status: "success", data: leaderboards });
     } catch (err) {
       console.error("getTopGamersByGameId error:", err);
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
+    }
+  },
+
+  getTopRankingOfFriendById: async (req, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
+      }
+
+      const gameId = req.params.game_id;
+      if (!gameId) {
+        return res.status(400).json({ status: "error", message: "Game ID is required" });
+      }
+
+      const leaderboards = await leaderboardsModel.getTopRankingOfFriendByUserId_GameId(userId, gameId);
+
+      return res.json({ status: "success", data: leaderboards });
+    } catch (err) {
+      console.error("getTopRankingOfFriendById error:", err);
       return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },

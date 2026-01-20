@@ -6,4 +6,8 @@ export const rankingService = {
   getTopLeaderBoard: async (gameId) => {
     return await apiClient.get(`/leaderboards/${gameId}`);
   },
+
+  getTopFriendLeaderBoard: async (gameId) => {
+    return await apiClient.get(`/leaderboards/${gameId}/friends`);
+  },
 };
