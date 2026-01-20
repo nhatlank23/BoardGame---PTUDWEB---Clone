@@ -137,6 +137,18 @@ export default function Users() {
     setActionDialog({ open: false, action: "", username: "", userId: "" });
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   useEffect(() => {
     handleFilterUser(users);
   }, [filterStatus, users]);
@@ -237,7 +249,7 @@ export default function Users() {
                               )}
                             </TableCell>
                             <TableCell>{user.role === "admin" ? "Admin" : "Player"}</TableCell>
-                            <TableCell>{user.created_at}</TableCell>
+                            <TableCell>{formatDate(user.created_at)}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
                                 {user.is_banned ? (

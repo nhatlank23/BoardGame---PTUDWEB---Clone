@@ -24,8 +24,8 @@ export function Sidebar({ isAdmin = false }) {
   ];
 
   const adminNavItems = [
-    { href: "/admin/dashboard", label: "Dashboard", icon: BarChart3 },
-    { href: "/admin/users", label: "Quản lý User", icon: UserCog },
+    { href: "/admin/dashboard", label: "Admin Dashboard", icon: BarChart3 },
+    { href: "/admin/users", label: "Quản lý người dùng", icon: UserCog },
     { href: "/admin/games", label: "Quản lý Game", icon: Gamepad2 },
   ];
 
