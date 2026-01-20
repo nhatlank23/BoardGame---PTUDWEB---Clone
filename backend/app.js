@@ -48,6 +48,7 @@ const swaggerOptions = {
       { name: "Admin", description: "API quản trị hệ thống" },
       { name: "Admin - Stats", description: "API thống kê cho admin" },
       { name: "Leaderboard", description: "API bảng xếp hạng" },
+      { name: "Reviews", description: "API đánh giá và bình luận game" },
     ],
     components: {
       securitySchemes: {
@@ -169,12 +170,14 @@ const userRoutes = require("./routes/userRoutes");
 const gameRoutes = require("./routes/gameRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const leaderboardRoutes = require("./routes/leaderboardRoute");
+const reviewRoutes = require("./routes/reviewRoutes");
 
 // Mount routes directly
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/leaderboards", leaderboardRoutes);
+app.use("/api/reviews", reviewRoutes);
 app.use("/api", gameRoutes);
 
 app.use((req, res) => {
