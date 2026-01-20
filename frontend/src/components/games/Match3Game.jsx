@@ -925,7 +925,8 @@ export default function Match3Game({ setControllerConfig }) {
                 <div className="space-y-3 text-muted-foreground">
                   {GAME_INSTRUCTIONS.map((instruction, idx) => (
                     <p key={idx} className="text-sm">
-                      {instruction}
+                      <strong className="block text-foreground">{instruction.title}</strong>
+                      {instruction.content}
                     </p>
                   ))}
                 </div>
