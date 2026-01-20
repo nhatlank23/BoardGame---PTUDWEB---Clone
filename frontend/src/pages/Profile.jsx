@@ -147,9 +147,7 @@ const ProfilePage = () => {
     try {
       console.log("Fetching achievements...");
       const achievementService = (await import("@/services/achievementService")).default;
-      const response = userId
-        ? await achievementService.getUserAchievements(userId)
-        : await achievementService.getUserAchievements();
+      const response = userId ? await achievementService.getUserAchievements(userId) : await achievementService.getUserAchievements();
 
       console.log("Achievements response:", response);
       setAchievements(response.data || []);
@@ -287,7 +285,7 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="max-w-5xl py-8 pl-32">
+    <div className="max-w-5xl mx-auto py-8 px-8">
       <Card className="p-6">
         {/* Header với avatar và thông tin cơ bản */}
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8">
@@ -351,9 +349,7 @@ const ProfilePage = () => {
         {/* Achievements Section */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-amber-600">
-              🏆 Thành tựu
-            </span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-amber-600">🏆 Thành tựu</span>
             {achievements.length > 0 && (
               <Badge variant="secondary" className="ml-2">
                 {achievements.length}
@@ -386,12 +382,8 @@ const ProfilePage = () => {
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-lg mb-1 group-hover:text-yellow-600 transition-colors truncate">
-                          {achievement.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                          {achievement.description}
-                        </p>
+                        <h3 className="font-bold text-lg mb-1 group-hover:text-yellow-600 transition-colors truncate">{achievement.name}</h3>
+                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{achievement.description}</p>
                         {achievement.earned_at && (
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>
@@ -401,9 +393,7 @@ const ProfilePage = () => {
                       </div>
                     </div>
 
-                    <div className="absolute top-2 right-2 text-yellow-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                      ✨
-                    </div>
+                    <div className="absolute top-2 right-2 text-yellow-500 opacity-0 group-hover:opacity-100 transition-opacity">✨</div>
                   </div>
                 </Card>
               ))}
@@ -412,9 +402,7 @@ const ProfilePage = () => {
             <Card className="p-12 text-center border-dashed">
               <div className="text-6xl mb-4 opacity-20">🏆</div>
               <p className="text-lg text-muted-foreground mb-2">Chưa có thành tựu</p>
-              <p className="text-sm text-muted-foreground">
-                Hãy chơi game và hoàn thành thử thách để mở khóa thành tựu!
-              </p>
+              <p className="text-sm text-muted-foreground">Hãy chơi game và hoàn thành thử thách để mở khóa thành tựu!</p>
             </Card>
           )}
         </div>
