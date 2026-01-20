@@ -36,16 +36,14 @@ function App() {
         {/* --- PUBLIC ROUTES (Ai cũng vào được) --- */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
-                 
+
         {/* User routes with Layout */}
         <Route element={<Layout />}>
-
-
-          
           {/* --- PROTECTED ROUTES (Phải đăng nhập mới vào được) --- */}
           <Route element={<ProtectedRoute />}>
-           <Route path="/home" element={<HomePage />} />
+            <Route path="/home" element={<HomePage />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/profile/:userId" element={<Profile />} />
             <Route path="/friends" element={<FriendsPage />} />
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/ranking" element={<Ranking />} />
