@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-export function GameController({ onLeft, onRight, onEnter, onBack, onHint, className }) {
+export function GameController({ onLeft, onRight, onEnter, onBack, onHint, disableLeft, disableRight, className }) {
   // Simulate key press ONLY if no specific handler is passed
   const simulateKeyPress = (key) => {
     const event = new KeyboardEvent("keydown", {
@@ -14,8 +14,8 @@ export function GameController({ onLeft, onRight, onEnter, onBack, onHint, class
     window.dispatchEvent(event);
   };
 
-  const handleLeft = () => (onLeft ? onLeft() : simulateKeyPress("ArrowLeft"));
-  const handleRight = () => (onRight ? onRight() : simulateKeyPress("ArrowRight"));
+  const handleLeft = () => (!disableLeft ? (onLeft ? onLeft() : simulateKeyPress("ArrowLeft")) : null);
+  const handleRight = () => (!disableRight ? (onRight ? onRight() : simulateKeyPress("ArrowRight")) : null);
   const handleEnter = () => (onEnter ? onEnter() : simulateKeyPress("Enter"));
   const handleBack = () => (onBack ? onBack() : simulateKeyPress("Escape"));
   const handleHint = () => (onHint ? onHint() : simulateKeyPress("h"));
@@ -61,8 +61,8 @@ export function GameController({ onLeft, onRight, onEnter, onBack, onHint, class
         <div className="flex items-end justify-between gap-4 mt-2">
           {/* D-PAD Area (Visualized nicely) */}
           <div className="bg-secondary/50 p-3 rounded-2xl border border-border shadow-inner flex gap-2">
-            <NavButton icon={<ArrowLeft size={28} />} onClick={handleLeft} />
-            <NavButton icon={<ArrowRight size={28} />} onClick={handleRight} />
+            <NavButton icon={<ArrowLeft size={28} />} onClick={handleLeft} disabled={disableLeft} />
+            <NavButton icon={<ArrowRight size={28} />} onClick={handleRight} disabled={disableRight} />
           </div>
 
           {/* ACTION BUTTON (Big Enter) */}
@@ -103,11 +103,15 @@ function ControlButton({ icon, label, subLabel, onClick, colorClass }) {
 }
 
 // Sub-component for Navigation Buttons (Arrows)
-function NavButton({ icon, onClick }) {
+function NavButton({ icon, onClick, disabled }) {
   return (
     <Button
-      className="h-16 w-16 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border-b-4 border-border active:border-b-0 active:translate-y-1 transition-all shadow-lg"
+      className={cn(
+        "h-16 w-16 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border-b-4 border-border active:border-b-0 active:translate-y-1 transition-all shadow-lg",
+        disabled && "opacity-50 cursor-not-allowed active:border-b-4 active:translate-y-0"
+      )}
       onClick={onClick}
+      disabled={disabled}
     >
       {icon}
     </Button>

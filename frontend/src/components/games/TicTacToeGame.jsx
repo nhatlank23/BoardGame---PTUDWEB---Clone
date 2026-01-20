@@ -62,7 +62,7 @@ const GAME_INSTRUCTIONS = [
   },
 ];
 
-export default function TicTacToeGame() {
+export default function TicTacToeGame({ setControllerConfig }) {
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -101,6 +101,12 @@ export default function TicTacToeGame() {
   const isNavigatingRef = useRef(false);
 
   // --- NAVIGATION GUARD ---
+  useEffect(() => {
+    if (setControllerConfig) {
+      setControllerConfig({ disableLeft: gameStarted, disableRight: gameStarted });
+    }
+  }, [gameStarted, setControllerConfig]);
+
   useEffect(() => {
     const shouldBlock = gameStarted && !gameEnded && !isNavigatingRef.current;
 

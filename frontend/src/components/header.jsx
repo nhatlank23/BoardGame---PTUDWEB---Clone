@@ -32,13 +32,6 @@ export function Header() {
           <span className="text-xl font-bold">Board Game</span>
         </Link>
 
-        <div className="flex-1 max-w-md mx-8">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Tìm kiếm game..." className="pl-9" />
-          </div>
-        </div>
-
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
             {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}

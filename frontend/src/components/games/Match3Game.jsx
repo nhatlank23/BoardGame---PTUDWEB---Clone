@@ -76,7 +76,7 @@ const GAME_INSTRUCTIONS = [
   },
 ];
 
-export default function Match3Game() {
+export default function Match3Game({ setControllerConfig }) {
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -115,6 +115,12 @@ export default function Match3Game() {
   const aiTimerRef = useRef();
   const containerRef = useRef(null);
   const isNavigatingRef = useRef(false);
+
+  useEffect(() => {
+    if (setControllerConfig) {
+      setControllerConfig({ disableLeft: gameStarted, disableRight: gameStarted });
+    }
+  }, [gameStarted, setControllerConfig]);
 
   useEffect(() => {
     const shouldBlock = gameStarted && gameStatus === "playing" && !isNavigatingRef.current;

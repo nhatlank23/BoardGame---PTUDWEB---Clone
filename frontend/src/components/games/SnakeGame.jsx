@@ -74,7 +74,7 @@ const GAME_INSTRUCTIONS = [
   },
 ];
 
-export default function SnakeGame() {
+export default function SnakeGame({ setControllerConfig }) {
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -113,6 +113,12 @@ export default function SnakeGame() {
   const timerRef = useRef();
   const elapsedRef = useRef();
   const isNavigatingRef = useRef(false);
+
+  useEffect(() => {
+    if (setControllerConfig) {
+      setControllerConfig({ disableLeft: gameStarted, disableRight: gameStarted });
+    }
+  }, [gameStarted, setControllerConfig]);
 
   useEffect(() => {
     const shouldBlock = gameStarted && !gameOver && !gameWon && !isNavigatingRef.current;

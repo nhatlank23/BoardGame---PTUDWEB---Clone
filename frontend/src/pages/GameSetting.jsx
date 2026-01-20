@@ -33,9 +33,6 @@ export default function GameSettingsPage() {
 
   return (
     <div className="min-h-screen">
-      <Header />
-      <Sidebar />
-
       <main className="ml-64 mt-16 p-8">
         <div className="max-w-4xl mx-auto">
           <Button variant="ghost" asChild className="mb-6">

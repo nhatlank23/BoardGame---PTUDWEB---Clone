@@ -80,7 +80,7 @@ const AI_LEVELS = [
   { id: 3, name: "Khó", color: "rose", description: "AI thông minh, khó đánh bại" },
 ];
 
-export default function CaroGame({ winCount = 5 }) {
+export default function CaroGame({ winCount = 5, setControllerConfig }) {
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -115,6 +115,12 @@ export default function CaroGame({ winCount = 5 }) {
   const timerRef = useRef();
   const elapsedRef = useRef();
   const isNavigatingRef = useRef(false);
+
+  useEffect(() => {
+    if (setControllerConfig) {
+      setControllerConfig({ disableLeft: gameStarted, disableRight: gameStarted });
+    }
+  }, [gameStarted, setControllerConfig]);
 
   useEffect(() => {
     const shouldBlock = gameStarted && !gameEnded && !winner && !isNavigatingRef.current;

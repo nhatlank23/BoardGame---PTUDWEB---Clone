@@ -53,9 +53,25 @@ module.exports = {
           .json({ status: "error", message: "Unauthorized" });
       }
 
-      const users = await userModel.getAllUsers();
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const status = req.query.status || 'all';
+      const search = req.query.search || '';
 
-      return res.json({ data: users });
+      // Truyền thêm điều kiện lọc vào Model
+      const { users, total } = await userModel.getAllUsers({
+        page,
+        limit,
+        status,
+        search
+      });
+
+      const totalPages = Math.ceil(total / limit);
+
+      return res.json({
+        data: users,
+        meta: { total, page, limit, totalPages },
+      });
     } catch (err) {
       console.error("getAllUsers error:", err);
       return res
@@ -108,7 +124,7 @@ module.exports = {
       const gamesPlayed = await db("games")
         .select("games.id", "games.name", "games.slug")
         .count("game_logs.id as plays")
-        .leftJoin("game_logs", function() {
+        .leftJoin("game_logs", function () {
           this.on("games.id", "=", "game_logs.game_id")
             .andOn(db.raw("game_logs.played_at >= NOW() - INTERVAL '7 days'"))
         })

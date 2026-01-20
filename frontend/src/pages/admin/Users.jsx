@@ -15,6 +15,8 @@ export default function Users() {
   const { toast } = useToast();
 
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1); // Lưu tổng số trang từ API
+  const [totalUsers, setTotalUsers] = useState(0);
   const [filterStatus, setFilterStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [actionDialog, setActionDialog] = useState({ open: false, action: "", username: "", userId: "" });
@@ -22,57 +24,33 @@ export default function Users() {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
 
-  // const users = [
-  //   {
-  //     id: 1,
-  //     name: "ProGamer123",
-  //     email: "progamer@example.com",
-  //     status: "online",
-  //     games: 145,
-  //     joinDate: "2024-01-15",
-  //     banned: false,
-  //   },
-  //   {
-  //     id: 2,
-  //     name: "MasterPlayer",
-  //     email: "master@example.com",
-  //     status: "online",
-  //     games: 138,
-  //     joinDate: "2024-01-20",
-  //     banned: false,
-  //   },
-  //   {
-  //     id: 3,
-  //     name: "GameLegend",
-  //     email: "legend@example.com",
-  //     status: "offline",
-  //     games: 132,
-  //     joinDate: "2024-02-01",
-  //     banned: false,
-  //   },
-  //   {
-  //     id: 4,
-  //     name: "BannedUser",
-  //     email: "banned@example.com",
-  //     status: "banned",
-  //     games: 45,
-  //     joinDate: "2024-03-10",
-  //     banned: true,
-  //   },
-  // ];
 
   async function fetchUsers() {
     try {
       setLoading(true);
-      const res = await adminService.getAllUsers();
+      // Gửi cả page, status và search lên Backend
+      const res = await adminService.getAllUsers({
+        page,
+        limit: 5,
+        status: filterStatus,
+        search: search
+      });
 
-      setUsers(res.data);
+      if (res.data) {
+        setUsers(res.data);
+        setFilteredUsers(res.data); // Không lọc thủ công nữa, dùng data từ server luôn
+        setTotalPages(res.meta?.totalPages || 1);
+        setTotalUsers(res.meta?.total || 0);
+      }
     } catch (error) {
-      toast({ title: "Lỗi kết nối", description: "Vui lòng kiểm tra API", variant: "destructive" });
+      toast({ title: "Lỗi", description: "Không thể tải danh sách", variant: "destructive" });
     } finally {
       setLoading(false);
     }
   }
+  useEffect(() => {
+    fetchUsers();
+  }, [page]);
 
   const handleAction = (action, userName, userId) => {
     setActionDialog({ open: true, action, username: userName, userId: userId });
@@ -153,9 +131,7 @@ export default function Users() {
     handleFilterUser(users);
   }, [filterStatus, users]);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -190,7 +166,7 @@ export default function Users() {
               <div className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
                 <div>
                   <CardTitle>Danh sách người dùng</CardTitle>
-                  <CardDescription>Tổng {users.length} người dùng</CardDescription>
+                  <CardDescription>Tổng {totalUsers} người dùng</CardDescription>
                 </div>
                 <div className="flex gap-2">
                   <div className="relative flex-1 md:w-64">
@@ -277,8 +253,32 @@ export default function Users() {
                 </>
               )}
               <div className="w-full flex flex-row justify-center items-center gap-5">
-                <Button>Trang tiếp</Button>
-                <Button>Trang trước</Button>
+                <div className="flex items-center justify-center space-x-4 mt-6 py-4 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1 || loading}
+                  >
+                    Trang trước
+                  </Button>
+
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center justify-center w-8 h-8 rounded-md bg-primary text-primary-foreground font-medium text-sm">
+                      {page}
+                    </span>
+                    <span className="text-muted-foreground text-sm">/ {totalPages}</span>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages || loading}
+                  >
+                    Trang tiếp
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

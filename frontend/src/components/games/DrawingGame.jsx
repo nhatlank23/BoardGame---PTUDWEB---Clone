@@ -84,7 +84,7 @@ const CELL_COLORS = {
   hinted: "ring-2 ring-amber-400 animate-pulse",
 };
 
-export default function DrawingGame() {
+export default function DrawingGame({ setControllerConfig }) {
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -117,6 +117,12 @@ export default function DrawingGame() {
   const timerRef = useRef();
   const elapsedRef = useRef();
   const isNavigatingRef = useRef(false);
+
+  useEffect(() => {
+    if (setControllerConfig) {
+      setControllerConfig({ disableLeft: gameStarted, disableRight: gameStarted });
+    }
+  }, [gameStarted, setControllerConfig]);
 
   useEffect(() => {
     const shouldBlock = gameStarted && !gameEnded && !isNavigatingRef.current;

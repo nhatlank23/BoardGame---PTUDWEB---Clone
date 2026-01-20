@@ -44,11 +44,20 @@ class UserModel {
   }
 
   // Lấy tất cả users (cho admin)
-  static async getAllUsers() {
-    return await db("users")
+  static async getAllUsers({ page = 1, limit = 10 } = {}) {
+    const offset = (page - 1) * limit;
+
+    const [totalResult] = await db("users").count("* as count");
+    const total = parseInt(totalResult.count);
+
+    const users = await db("users")
       .select("id", "username", "email", "role", "avatar_url", "dark_mode", "is_banned", "status", "created_at")
       .orderBy("created_at", "desc")
-      .orderBy("id", "desc");
+      .orderBy("id", "desc")
+      .limit(limit)
+      .offset(offset);
+
+    return { users, total };
   }
 
   // Update user

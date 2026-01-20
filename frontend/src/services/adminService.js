@@ -5,8 +5,14 @@ export const adminService = {
     return await apiClient.get("/admin/stats/summary");
   },
 
-  async getAllUsers() {
-    return await apiClient.get("/admin/users");
+  async getAllUsers({ page = 1, limit = 5, status = 'all', search = '' }) {
+    const params = new URLSearchParams({
+      page,
+      limit,
+      status,
+      search
+    });
+    return await apiClient.get(`/admin/users?${params.toString()}`);
   },
 
   async getSearchUser(q) {

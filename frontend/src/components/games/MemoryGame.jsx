@@ -69,7 +69,7 @@ const CELL_COLORS = {
   hinted: "border-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.6)] animate-pulse",
 };
 
-export default function MemoryGame() {
+export default function MemoryGame({ setControllerConfig }) {
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -106,6 +106,12 @@ export default function MemoryGame() {
   const timerRef = useRef();
   const elapsedRef = useRef();
   const isNavigatingRef = useRef(false);
+
+  useEffect(() => {
+    if (setControllerConfig) {
+      setControllerConfig({ disableLeft: gameStarted, disableRight: gameStarted });
+    }
+  }, [gameStarted, setControllerConfig]);
 
   useEffect(() => {
     const shouldBlock = gameStarted && !gameEnded && matchedIndices.length < cards.length && !isNavigatingRef.current;
