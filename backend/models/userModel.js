@@ -46,7 +46,7 @@ class UserModel {
   // Lấy tất cả users (cho admin)
   static async getAllUsers() {
     return await db("users")
-      .select("id", "username", "email", "role", "avatar_url", "dark_mode", "is_banned", "created_at")
+      .select("id", "username", "email", "role", "avatar_url", "dark_mode", "is_banned", "status", "created_at")
       .orderBy("created_at", "desc")
       .orderBy("id", "desc");
   }

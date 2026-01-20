@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import Loading from "../../components/ui/loading";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -14,6 +15,8 @@ import { useToast } from "../../hooks/use-toast";
 
 export default function Users() {
   const { toast } = useToast();
+
+  const [page, setPage] = useState(1);
   const [filterStatus, setFilterStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [actionDialog, setActionDialog] = useState({ open: false, action: "", username: "", userId: "" });
@@ -84,8 +87,16 @@ export default function Users() {
       users.filter((user) => {
         if (filterStatus === "all") return true;
 
-        const isBanned = filterStatus === "banned";
-        return user.is_banned == isBanned;
+        console.log(filterStatus, user);
+
+        switch (filterStatus) {
+          case "banned":
+            return user.is_banned == true;
+          case "Online":
+            return user.status === "Online";
+          case "Offline":
+            return user.status === "Offline";
+        }
       }),
     );
   };
@@ -94,9 +105,12 @@ export default function Users() {
     if (actionDialog.open === false) return;
 
     async function bannedUser(id) {
+      setLoading(true);
       const res = await adminService.toggleBanUser(id, true);
 
       await fetchUsers();
+
+      setLoading(false);
 
       toast({
         title: "Thành công",
@@ -182,7 +196,8 @@ export default function Users() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Tất cả</SelectItem>
-                      <SelectItem value="not-banned">Hoạt động</SelectItem>
+                      <SelectItem value="Online">Online</SelectItem>
+                      <SelectItem value="Offline">Offline</SelectItem>
                       <SelectItem value="banned">Bị khóa</SelectItem>
                     </SelectContent>
                   </Select>
@@ -190,51 +205,74 @@ export default function Users() {
               </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Người dùng</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead>Vai trò</TableHead>
-                    <TableHead>Ngày tham gia</TableHead>
-                    <TableHead className="text-right">Hành động</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.username}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        {user.is_banned === false && <Badge variant="secondary">Hoạt động</Badge>}
-                        {user.is_banned === true && <Badge variant="destructive">Bị khóa</Badge>}
-                      </TableCell>
-                      <TableCell>{user.role === "admin" ? "Admin" : "Player"}</TableCell>
-                      <TableCell>{user.created_at}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {user.is_banned ? (
-                            <Button variant="outline" size="sm" onClick={() => handleAction("unlock", user.name, user.id)}>
-                              <Unlock className="h-4 w-4 mr-1" />
-                              Mở khóa
-                            </Button>
-                          ) : (
-                            <Button variant="outline" size="sm" onClick={() => handleAction("lock", user.name, user.id)}>
-                              <Lock className="h-4 w-4 mr-1" />
-                              Khóa
-                            </Button>
-                          )}
-                          {/* <Button variant="outline" size="sm" onClick={() => handleAction("delete", user.id)}>
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            Xóa
-                          </Button> */}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              {loading ? (
+                <Loading className="w-full h-32"></Loading>
+              ) : (
+                <>
+                  {filteredUsers.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Người dùng</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Trạng thái</TableHead>
+                          <TableHead>Vai trò</TableHead>
+                          <TableHead>Ngày tham gia</TableHead>
+                          <TableHead className="text-right">Hành động</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredUsers.map((user) => (
+                          <TableRow key={user.id}>
+                            <TableCell className="font-medium">{user.username}</TableCell>
+                            <TableCell>{user.email}</TableCell>
+                            <TableCell>
+                              {user.is_banned === true ? (
+                                <Badge variant="destructive">Bị khóa</Badge>
+                              ) : (
+                                <>
+                                  {user.status === "Online" ? (
+                                    <Badge variant="default" className="bg-green-600">
+                                      Online
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="secondary">Offline</Badge>
+                                  )}
+                                </>
+                              )}
+                            </TableCell>
+                            <TableCell>{user.role === "admin" ? "Admin" : "Player"}</TableCell>
+                            <TableCell>{user.created_at}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                {user.is_banned ? (
+                                  <Button variant="outline" size="sm" onClick={() => handleAction("unlock", user.name, user.id)}>
+                                    <Unlock className="h-4 w-4 mr-1" />
+                                    Mở khóa
+                                  </Button>
+                                ) : (
+                                  <Button variant="outline" size="sm" onClick={() => handleAction("lock", user.name, user.id)}>
+                                    <Lock className="h-4 w-4 mr-1" />
+                                    Khóa
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="w-full text-center h-24 align-middle">
+                      <p>Không có kết quả</p>
+                    </div>
+                  )}
+                </>
+              )}
+              <div className="w-full flex flex-row justify-center items-center gap-5">
+                <Button>Trang tiếp</Button>
+                <Button>Trang trước</Button>
+              </div>
             </CardContent>
           </Card>
         </div>
