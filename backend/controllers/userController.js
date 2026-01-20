@@ -442,20 +442,21 @@ module.exports = {
     }
   },
 
-  // GET /api/users/:id/achievements
+  // GET /api/users/achievements?page=1&pageSize=50
   getUserAchievements: async (req, res) => {
     try {
-      const requesterId = req.user?.id || req.userId;
-      if (!requesterId) {
+      const userId = req.user?.id || req.userId;
+
+      if (!userId) {
         return res.status(401).json({ status: "error", message: "Unauthorized" });
       }
 
-      const userId = req?.params?.id;
-      if (!userId) {
-        return res.status(400).json({ status: "error", message: "User id is required" });
-      }
+      const PAGE_SIZE = 50;
 
-      const achievements = await achievementModel.getUserAchievements(userId);
+      const page = req.query?.page ? Number(req.query?.page) : 1;
+      const pageSize = req.query?.pageSize ? Number(req.query?.pageSize) : PAGE_SIZE;
+
+      const achievements = await achievementModel.getUserAchievements(userId, page, pageSize);
 
       return res.json({ data: achievements });
     } catch (err) {

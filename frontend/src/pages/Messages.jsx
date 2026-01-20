@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { friendService } from "@/services/friendService";
 import { messageService } from "@/services/messageService";
+import { MessageCircle } from "lucide-react";
 
 const PAGE_SIZE = 50;
 
@@ -56,22 +57,6 @@ export default function MessagesPage() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
-
-  // const loadMoreFriend = async () => {
-  //   try {
-  //     setLoading(true);
-  //     setError(null);
-  //     const response = await friendService.getFriends();
-  //     if (response?.data) {
-  //       // setFriends((prev) => [...prev, ...response.data]);
-  //     }
-  //   } catch (err) {
-  //     console.error("Error loading friends:", err);
-  //     setError("Không thể tải danh sách bạn bè");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 
   const loadFriends = async () => {
     try {
@@ -221,11 +206,7 @@ export default function MessagesPage() {
                       <div>
                         <div className="font-semibold">{selectedFriend.name}</div>
                         <div className="text-sm text-muted-foreground">
-                          {selectedFriend.status === "Online" ? (
-                            <span className="text-green-500 font-medium">● Online</span>
-                          ) : (
-                            selectedFriend.email
-                          )}
+                          {selectedFriend.status === "Online" ? <span className="text-green-500 font-medium">● Online</span> : selectedFriend.email}
                         </div>
                       </div>
                     </div>
@@ -243,7 +224,12 @@ export default function MessagesPage() {
                         const isMe = message.sender_id === user?.id;
                         return (
                           <div key={message.id} className={cn("flex", isMe ? "justify-end" : "justify-start")}>
-                            <div className={cn("max-w-[70%] rounded-2xl px-4 py-2 shadow-sm", isMe ? "bg-primary text-primary-foreground rounded-tr-none" : "bg-muted rounded-tl-none")}>
+                            <div
+                              className={cn(
+                                "max-w-[70%] rounded-2xl px-4 py-2 shadow-sm",
+                                isMe ? "bg-primary text-primary-foreground rounded-tr-none" : "bg-muted rounded-tl-none",
+                              )}
+                            >
                               <div className="text-sm">{message.content}</div>
                               <div className={cn("text-[10px] mt-1 opacity-70 flex justify-end", isMe ? "text-primary-foreground" : "text-muted-foreground")}>
                                 {formatTime(message.created_at)}
@@ -286,4 +272,3 @@ export default function MessagesPage() {
     </div>
   );
 }
-
