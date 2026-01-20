@@ -15,9 +15,8 @@ module.exports = {
       const currentUserId = req.user?.id || req.userId;
 
       let query = db("users")
-        .where(function() {
-          this.where("username", "ilike", term)
-            .orWhere("email", "ilike", term);
+        .where(function () {
+          this.where("username", "ilike", term).orWhere("email", "ilike", term);
         })
         .select("id", "username", "email", "avatar_url")
         .limit(10);
@@ -39,9 +38,7 @@ module.exports = {
       return res.json({ data: users });
     } catch (err) {
       console.error("searchUsers error:", err);
-      return res
-        .status(500)
-        .json({ status: "error", message: "Internal Server Error" });
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -50,24 +47,29 @@ module.exports = {
     try {
       const userId = req.user?.id || req.userId;
       if (!userId) {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
       }
+
+      const PAGE_SIZE = 50;
+
+      const page = req.query?.page ? Number(req.query?.page) : 1;
+      const pageSize = req.query?.pageSize ? Number(req.query?.pageSize) : PAGE_SIZE;
 
       const friendsAsRequester = await db("friendships")
         .where("friendships.requester_id", userId)
         .andWhere("friendships.status", "accepted")
         .join("users", "users.id", "friendships.addressee_id")
         .select("users.id", "users.username", "users.email", "users.avatar_url")
-        .limit(100);
+        .limit(pageSize)
+        .offset((page - 1) * pageSize);
 
       const friendsAsAddressee = await db("friendships")
         .where("friendships.addressee_id", userId)
         .andWhere("friendships.status", "accepted")
         .join("users", "users.id", "friendships.requester_id")
         .select("users.id", "users.username", "users.email", "users.avatar_url")
-        .limit(100);
+        .limit(pageSize)
+        .offset((page - 1) * pageSize);
 
       const allFriends = [...friendsAsRequester, ...friendsAsAddressee];
 
@@ -81,9 +83,7 @@ module.exports = {
       return res.json({ data: friends });
     } catch (err) {
       console.error("getFriends error:", err);
-      return res
-        .status(500)
-        .json({ status: "error", message: "Internal Server Error" });
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -92,17 +92,21 @@ module.exports = {
     try {
       const userId = req.user?.id || req.userId;
       if (!userId) {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
       }
+
+      const PAGE_SIZE = 50;
+
+      const page = req.query?.page ? Number(req.query?.page) : 1;
+      const pageSize = req.query?.pageSize ? Number(req.query?.pageSize) : PAGE_SIZE;
 
       const rows = await db("friendships")
         .where("friendships.addressee_id", userId)
         .andWhere("friendships.status", "pending")
         .join("users", "users.id", "friendships.requester_id")
         .select("users.id", "users.username", "users.email", "users.avatar_url")
-        .limit(50);
+        .limit(pageSize)
+        .offset((page - 1) * pageSize);
 
       const requests = rows.map((r) => ({
         id: r.id,
@@ -114,9 +118,7 @@ module.exports = {
       return res.json({ data: requests });
     } catch (err) {
       console.error("getFriendRequests error:", err);
-      return res
-        .status(500)
-        .json({ status: "error", message: "Internal Server Error" });
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -125,9 +127,7 @@ module.exports = {
     try {
       const userId = req.user?.id || req.userId;
       if (!userId) {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
       }
 
       const rows = await db("friendships")
@@ -147,9 +147,7 @@ module.exports = {
       return res.json({ data: sentRequests });
     } catch (err) {
       console.error("getSentFriendRequests error:", err);
-      return res
-        .status(500)
-        .json({ status: "error", message: "Internal Server Error" });
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -158,16 +156,12 @@ module.exports = {
     try {
       const userId = req.user?.id || req.userId;
       if (!userId) {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
       }
 
       const { addresseeId } = req.body;
       if (!addresseeId) {
-        return res
-          .status(400)
-          .json({ status: "error", message: "addresseeId is required" });
+        return res.status(400).json({ status: "error", message: "addresseeId is required" });
       }
 
       if (userId === addresseeId) {
@@ -188,9 +182,7 @@ module.exports = {
 
       if (existing) {
         if (existing.status === "accepted") {
-          return res
-            .status(400)
-            .json({ status: "error", message: "Already friends" });
+          return res.status(400).json({ status: "error", message: "Already friends" });
         }
         if (existing.status === "pending") {
           return res.status(400).json({
@@ -211,9 +203,7 @@ module.exports = {
       return res.json({ success: true, data: newRequest });
     } catch (err) {
       console.error("sendFriendRequest error:", err);
-      return res
-        .status(500)
-        .json({ status: "error", message: "Internal Server Error" });
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -222,16 +212,12 @@ module.exports = {
     try {
       const userId = req.user?.id || req.userId;
       if (!userId) {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
       }
 
       const friendId = req.params.id;
       if (!friendId) {
-        return res
-          .status(400)
-          .json({ status: "error", message: "Friend id is required" });
+        return res.status(400).json({ status: "error", message: "Friend id is required" });
       }
 
       const deleted = await db("friendships")
@@ -244,17 +230,13 @@ module.exports = {
         .del();
 
       if (deleted === 0) {
-        return res
-          .status(404)
-          .json({ status: "error", message: "Friendship not found" });
+        return res.status(404).json({ status: "error", message: "Friendship not found" });
       }
 
       return res.json({ success: true });
     } catch (err) {
       console.error("deleteFriend error:", err);
-      return res
-        .status(500)
-        .json({ status: "error", message: "Internal Server Error" });
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -263,9 +245,7 @@ module.exports = {
     try {
       const userId = req.user?.id || req.userId;
       if (!userId) {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
       }
 
       const { requesterId, action } = req.body;
@@ -292,16 +272,12 @@ module.exports = {
         .first();
 
       if (!friendship) {
-        return res
-          .status(404)
-          .json({ status: "error", message: "Friend request not found" });
+        return res.status(404).json({ status: "error", message: "Friend request not found" });
       }
 
       if (action === "accept") {
         // Chấp nhận: cập nhật status thành accepted
-        await db("friendships")
-          .where({ id: friendship.id })
-          .update({ status: "accepted", updated_at: db.fn.now() });
+        await db("friendships").where({ id: friendship.id }).update({ status: "accepted", updated_at: db.fn.now() });
       } else {
         // Từ chối: xóa hẳn request (không lưu declined)
         await db("friendships").where({ id: friendship.id }).del();
@@ -310,9 +286,7 @@ module.exports = {
       return res.json({ success: true });
     } catch (err) {
       console.error("respondToFriendRequest error:", err);
-      return res
-        .status(500)
-        .json({ status: "error", message: "Internal Server Error" });
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -321,16 +295,12 @@ module.exports = {
     try {
       const userId = req.user?.id || req.userId;
       if (!userId) {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
       }
 
       const receiverId = req.params.receiver_id;
       if (!receiverId) {
-        return res
-          .status(400)
-          .json({ status: "error", message: "receiver_id is required" });
+        return res.status(400).json({ status: "error", message: "receiver_id is required" });
       }
 
       const messages = await db("messages")
@@ -347,9 +317,7 @@ module.exports = {
       return res.json({ data: messages });
     } catch (err) {
       console.error("getMessages error:", err);
-      return res
-        .status(500)
-        .json({ status: "error", message: "Internal Server Error" });
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -358,21 +326,15 @@ module.exports = {
     try {
       const userId = req.user?.id || req.userId;
       if (!userId) {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
       }
 
       const { receiver_id, content } = req.body;
       if (!receiver_id) {
-        return res
-          .status(400)
-          .json({ status: "error", message: "receiver_id is required" });
+        return res.status(400).json({ status: "error", message: "receiver_id is required" });
       }
       if (!content || String(content).trim().length === 0) {
-        return res
-          .status(400)
-          .json({ status: "error", message: "content is required" });
+        return res.status(400).json({ status: "error", message: "content is required" });
       }
 
       const [message] = await db("messages")
@@ -382,9 +344,7 @@ module.exports = {
       return res.json({ success: true, data: message });
     } catch (err) {
       console.error("sendMessage error:", err);
-      return res
-        .status(500)
-        .json({ status: "error", message: "Internal Server Error" });
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -393,9 +353,7 @@ module.exports = {
     try {
       const userId = req.user?.id || req.userId;
       if (!userId) {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
       }
 
       const user = await userModel.findById(userId);
@@ -403,9 +361,7 @@ module.exports = {
       return res.json({ data: user });
     } catch (err) {
       console.error("getUser error:", err);
-      return res
-        .status(500)
-        .json({ status: "error", message: "Internal Server Error" });
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -414,9 +370,7 @@ module.exports = {
     try {
       const userId = req.user?.id || req.userId;
       if (!userId) {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
       }
 
       const { avatar_url, username } = req.body;
@@ -429,9 +383,7 @@ module.exports = {
       return res.json({ data: updatedUser[0] });
     } catch (err) {
       console.error("updateUser error:", err);
-      return res
-        .status(500)
-        .json({ status: "error", message: "Internal Server Error" });
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -440,23 +392,17 @@ module.exports = {
     try {
       const userId = req.user?.id || req.userId;
       if (!userId) {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
       }
 
       const { dark_mode } = req.body;
 
       // Kiểm tra giá trị đầu vào
       if (typeof dark_mode !== "boolean") {
-        return res
-          .status(400)
-          .json({ status: "error", message: "dark_mode must be a boolean" });
+        return res.status(400).json({ status: "error", message: "dark_mode must be a boolean" });
       }
       if (dark_mode !== true && dark_mode !== false) {
-        return res
-          .status(400)
-          .json({ status: "error", message: "Require dark_mode" });
+        return res.status(400).json({ status: "error", message: "Require dark_mode" });
       }
 
       const updatedUserSettings = await userModel.updateUser(userId, {
@@ -466,9 +412,7 @@ module.exports = {
       return res.json({ data: updatedUserSettings[0] });
     } catch (err) {
       console.error("updateUserSettings error:", err);
-      return res
-        .status(500)
-        .json({ status: "error", message: "Internal Server Error" });
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -477,31 +421,23 @@ module.exports = {
     try {
       const requesterId = req.user?.id || req.userId;
       if (!requesterId) {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
       }
 
       const userId = req?.params?.id;
       if (!userId) {
-        return res
-          .status(400)
-          .json({ status: "error", message: "User id is required" });
+        return res.status(400).json({ status: "error", message: "User id is required" });
       }
 
       const user = await userModel.findById(userId);
       if (!user) {
-        return res
-          .status(404)
-          .json({ status: "error", message: "User not found" });
+        return res.status(404).json({ status: "error", message: "User not found" });
       }
 
       return res.json({ data: user });
     } catch (err) {
       console.error("getUser error:", err);
-      return res
-        .status(500)
-        .json({ status: "error", message: "Internal Server Error" });
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -510,16 +446,12 @@ module.exports = {
     try {
       const requesterId = req.user?.id || req.userId;
       if (!requesterId) {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
       }
 
       const userId = req?.params?.id;
       if (!userId) {
-        return res
-          .status(400)
-          .json({ status: "error", message: "User id is required" });
+        return res.status(400).json({ status: "error", message: "User id is required" });
       }
 
       const achievements = await achievementModel.getUserAchievements(userId);
@@ -527,9 +459,7 @@ module.exports = {
       return res.json({ data: achievements });
     } catch (err) {
       console.error("getUserAchievements error:", err);
-      return res
-        .status(500)
-        .json({ status: "error", message: "Internal Server Error" });
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -538,9 +468,7 @@ module.exports = {
     try {
       const userId = req.user?.id || req.userId;
       if (!userId) {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
       }
 
       // Lấy thống kê từ play_history
@@ -552,21 +480,15 @@ module.exports = {
           db.raw("COUNT(*) as played"),
           db.raw("MAX(play_history.score) as record"),
           db.raw("AVG(play_history.score)::INTEGER as avg_score"),
-          db.raw(
-            "SUM(CASE WHEN play_history.score = 1 THEN 1 ELSE 0 END) as wins"
-          ),
-          db.raw(
-            "ROUND(SUM(CASE WHEN play_history.score = 1 THEN 1 ELSE 0 END)::NUMERIC / COUNT(*) * 100, 1) as win_rate"
-          )
+          db.raw("SUM(CASE WHEN play_history.score = 1 THEN 1 ELSE 0 END) as wins"),
+          db.raw("ROUND(SUM(CASE WHEN play_history.score = 1 THEN 1 ELSE 0 END)::NUMERIC / COUNT(*) * 100, 1) as win_rate"),
         )
         .groupBy("games.id", "games.name");
 
       return res.json({ data: stats });
     } catch (err) {
       console.error("getUserStats error:", err);
-      return res
-        .status(500)
-        .json({ status: "error", message: "Internal Server Error" });
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -575,9 +497,7 @@ module.exports = {
     try {
       const userId = req.user?.id || req.userId;
       if (!userId) {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
       }
 
       const limit = parseInt(req.query.limit) || 20;
@@ -585,22 +505,14 @@ module.exports = {
       const history = await db("play_history")
         .where("play_history.user_id", userId)
         .join("games", "games.id", "play_history.game_id")
-        .select(
-          "play_history.id",
-          "games.name as game_name",
-          "play_history.score",
-          "play_history.duration",
-          "play_history.played_at"
-        )
+        .select("play_history.id", "games.name as game_name", "play_history.score", "play_history.duration", "play_history.played_at")
         .orderBy("play_history.played_at", "desc")
         .limit(limit);
 
       return res.json({ data: history });
     } catch (err) {
       console.error("getUserHistory error:", err);
-      return res
-        .status(500)
-        .json({ status: "error", message: "Internal Server Error" });
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -609,9 +521,7 @@ module.exports = {
     try {
       const userId = req.user?.id || req.userId;
       if (!userId) {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
       }
 
       const { username, avatar_url } = req.body;
@@ -636,10 +546,7 @@ module.exports = {
         }
 
         // Kiểm tra username đã tồn tại chưa
-        const existingUser = await db("users")
-          .where("username", username)
-          .whereNot("id", userId)
-          .first();
+        const existingUser = await db("users").where("username", username).whereNot("id", userId).first();
 
         if (existingUser) {
           return res.status(409).json({
@@ -662,14 +569,7 @@ module.exports = {
           ...updateData,
           updated_at: db.fn.now(),
         })
-        .returning([
-          "id",
-          "username",
-          "email",
-          "avatar_url",
-          "role",
-          "dark_mode",
-        ]);
+        .returning(["id", "username", "email", "avatar_url", "role", "dark_mode"]);
 
       return res.json({
         status: "success",
@@ -678,9 +578,7 @@ module.exports = {
       });
     } catch (err) {
       console.error("updateProfile error:", err);
-      return res
-        .status(500)
-        .json({ status: "error", message: "Internal Server Error" });
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },
 
@@ -721,12 +619,10 @@ module.exports = {
       const fileName = `${userId}/${uuidv4()}${fileExt}`;
 
       // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from("avatar")
-        .upload(fileName, req.file.buffer, {
-          contentType: req.file.mimetype,
-          upsert: false,
-        });
+      const { data, error } = await supabase.storage.from("avatar").upload(fileName, req.file.buffer, {
+        contentType: req.file.mimetype,
+        upsert: false,
+      });
 
       if (error) {
         console.error("Supabase upload error:", error);
@@ -737,9 +633,7 @@ module.exports = {
       }
 
       // Get public URL
-      const { data: publicUrlData } = supabase.storage
-        .from("avatar")
-        .getPublicUrl(data.path);
+      const { data: publicUrlData } = supabase.storage.from("avatar").getPublicUrl(data.path);
 
       const avatarUrl = publicUrlData.publicUrl;
 
@@ -750,14 +644,7 @@ module.exports = {
           avatar_url: avatarUrl,
           updated_at: db.fn.now(),
         })
-        .returning([
-          "id",
-          "username",
-          "email",
-          "avatar_url",
-          "role",
-          "dark_mode",
-        ]);
+        .returning(["id", "username", "email", "avatar_url", "role", "dark_mode"]);
 
       // Delete old avatar if exists
       if (user.avatar_url && user.avatar_url.includes("supabase.co")) {

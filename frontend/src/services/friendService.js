@@ -3,13 +3,13 @@ import { apiClient } from "@/lib/apiClient";
 
 export const friendService = {
   // Lấy danh sách bạn bè
-  async getFriends() {
-    return await apiClient.get("/users/friends");
+  async getFriends(page = 1, pageSize = 50) {
+    return await apiClient.get(`/users/friends?page=${page}&pageSize=${pageSize}`);
   },
 
   // Lấy danh sách lời mời kết bạn
-  async getFriendRequests() {
-    return await apiClient.get("/users/friends/requests");
+  async getFriendRequests(page = 1, pageSize = 50) {
+    return await apiClient.get(`/users/friends/requests?page=${page}&pageSize=${pageSize}`);
   },
 
   // Lấy danh sách lời mời đã gửi (outgoing requests)
