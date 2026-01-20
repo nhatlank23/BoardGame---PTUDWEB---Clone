@@ -59,6 +59,20 @@ router.patch("/users/:id/ban", AdminController.toggleBanUser);
 
 /**
  * @openapi
+ * /api/admin/stats/summary:
+ *   get:
+ *     tags: [Admin - Stats]
+ *     summary: Tổng hợp stats dashboard (Admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Stats tổng quan
+ */
+router.get("/stats/summary", AdminController.getStatsSummary);
+
+/**
+ * @openapi
  * /api/admin/stats/games-played:
  *   get:
  *     tags: [Admin - Stats]

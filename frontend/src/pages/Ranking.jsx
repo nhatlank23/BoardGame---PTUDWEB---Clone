@@ -1,7 +1,5 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Header } from "@/components/header";
-import { Sidebar } from "@/components/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "../components/ui/button";
@@ -148,12 +146,8 @@ export default function RankingPage() {
   }, [selectedGame, pageLeaderboards]);
 
   return (
-    <div className="min-h-screen">
-      <Header />
-      <Sidebar />
-
-      <main className="ml-64 mt-16 p-8">
-        <div className="max-w-6xl mx-auto">
+    <main className="p-8 px-32">
+      <div className="max-w-6xl mx-auto">
           <div className="mb-8">
             <h1 className="text-4xl font-bold mb-2">Bảng xếp hạng</h1>
             <p className="text-muted-foreground">Xem thứ hạng cao thủ</p>
@@ -322,6 +316,5 @@ export default function RankingPage() {
           </Tabs>
         </div>
       </main>
-    </div>
   );
 }

@@ -78,6 +78,7 @@ module.exports = {
         name: r.username,
         email: r.email,
         avatar: r.avatar_url || null,
+        status: r.status || "Offline",
       }));
 
       return res.json({ data: friends });
