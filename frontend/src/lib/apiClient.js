@@ -1,14 +1,18 @@
 // HTTP client for API requests
 import { storageService } from "@/lib/storage";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-
+const API_URL = import.meta.env.VITE_API_URL
+const API_KEY = import.meta.env.VITE_API_KEY;
+const getFullHeaders = () => ({
+  ...storageService.getAuthHeaders(),
+  "x-api-key": API_KEY,
+});
 export const apiClient = {
   // POST request
   async post(endpoint, data, options = {}) {
     const response = await fetch(`${API_URL}${endpoint}`, {
       method: "POST",
-      headers: storageService.getAuthHeaders(),
+      headers: getFullHeaders(),
       body: JSON.stringify(data),
     });
     return this.handleResponse(response, options);
@@ -18,7 +22,7 @@ export const apiClient = {
   async get(endpoint, options = {}) {
     const response = await fetch(`${API_URL}${endpoint}`, {
       method: "GET",
-      headers: storageService.getAuthHeaders(),
+      headers: getFullHeaders(),
     });
     return this.handleResponse(response, options);
   },
@@ -27,7 +31,7 @@ export const apiClient = {
   async put(endpoint, data, options = {}) {
     const response = await fetch(`${API_URL}${endpoint}`, {
       method: "PUT",
-      headers: storageService.getAuthHeaders(),
+      headers: getFullHeaders(),
       body: JSON.stringify(data),
     });
     return this.handleResponse(response, options);
@@ -37,7 +41,7 @@ export const apiClient = {
   async patch(endpoint, data, options = {}) {
     const response = await fetch(`${API_URL}${endpoint}`, {
       method: "PATCH",
-      headers: storageService.getAuthHeaders(),
+      headers: getFullHeaders(),
       body: JSON.stringify(data),
     });
     return this.handleResponse(response, options);
@@ -47,7 +51,7 @@ export const apiClient = {
   async delete(endpoint, options = {}) {
     const response = await fetch(`${API_URL}${endpoint}`, {
       method: "DELETE",
-      headers: storageService.getAuthHeaders(),
+      headers: getFullHeaders(),
     });
     return this.handleResponse(response, options);
   },

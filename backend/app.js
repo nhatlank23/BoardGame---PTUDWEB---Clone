@@ -174,6 +174,7 @@ const reviewRoutes = require("./routes/reviewRoutes");
 const achievementRoutes = require("./routes/achievementRoutes");
 
 // Mount routes directly
+app.use(validateApiKey);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);

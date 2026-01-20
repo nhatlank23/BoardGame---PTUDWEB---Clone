@@ -58,6 +58,56 @@ router.use(authMiddleware);
  */
 router.get("/:game_id", leaderboardController.getTopGamersByGameId);
 
+/**
+ * @openapi
+ * /api/leaderboard/{game_id}/friends:
+ *   get:
+ *     tags: [Leaderboard]
+ *     summary: Lấy bảng xếp hạng bạn bè theo game
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: game_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của game
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Số lượng người chơi hiển thị
+ *     responses:
+ *       200:
+ *         description: Bảng xếp hạng bạn bè
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       user_id:
+ *                         type: integer
+ *                       username:
+ *                         type: string
+ *                       avatar_url:
+ *                         type: string
+ *                       score:
+ *                         type: number
+ *                       rank:
+ *                         type: integer
+ *       404:
+ *         description: Game không tồn tại
+ */
 router.get("/:game_id/friends", leaderboardController.getTopRankingOfFriendById);
 
 module.exports = router;

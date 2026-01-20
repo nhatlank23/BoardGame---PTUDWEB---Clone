@@ -13,6 +13,36 @@ const roleMiddleware = require('../middlewares/roleMiddleware');
 
 /**
  * @openapi
+ * components:
+ *   schemas:
+ *     Game:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: ID của game
+ *         name:
+ *           type: string
+ *           description: Tên hiển thị game
+ *         slug:
+ *           type: string
+ *           description: Định danh duy nhất (slug)
+ *         description:
+ *           type: string
+ *           description: Mô tả game
+ *         image_url:
+ *           type: string
+ *           description: URL ảnh bìa game
+ *         is_active:
+ *           type: boolean
+ *           description: Trạng thái hoạt động
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ */
+
+/**
+ * @openapi
  * /api/games:
  *   get:
  *     summary: Lấy danh sách các game đang hoạt động (Public)

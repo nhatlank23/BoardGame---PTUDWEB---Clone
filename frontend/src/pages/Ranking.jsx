@@ -1,18 +1,16 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "../components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Toast } from "../components/ui/toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trophy, Medal, Award } from "lucide-react";
 import { gameService } from "../services/gameService";
 import { rankingService } from "../services/rankingService";
-import Pagination from "../components/ui/paginatio";
+import GamePagination from "../components/ui/GamePagination";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 3;
 
 export default function RankingPage() {
   const [selectedGame, setSelectedGame] = useState("");
@@ -21,59 +19,10 @@ export default function RankingPage() {
   const [leaderboards, setLeaderboards] = useState([]);
   const [friendLeaderboards, setFriendLeaderboard] = useState([]);
   const [pageLeaderboards, setPageLeaderboards] = useState(1);
+  const [totalPagesLeaderboards, setTotalPagesLeaderboards] = useState(1);
   const [pageFriendsLeaderboards, setFriendsPageLeaderboards] = useState(1);
+  const [totalPagesFriendsLeaderboards, setTotalPagesFriendsLeaderboards] = useState(1);
 
-  // const topPlayers = [
-  //   {
-  //     rank: 1,
-  //     name: "ProGamer123",
-  //     avatar: "/placeholder.svg?height=40&width=40",
-  //     score: 2450,
-  //     wins: 145,
-  //     trend: "up",
-  //   },
-  //   {
-  //     rank: 2,
-  //     name: "MasterPlayer",
-  //     avatar: "/placeholder.svg?height=40&width=40",
-  //     score: 2380,
-  //     wins: 138,
-  //     trend: "up",
-  //   },
-  //   {
-  //     rank: 3,
-  //     name: "GameLegend",
-  //     avatar: "/placeholder.svg?height=40&width=40",
-  //     score: 2310,
-  //     wins: 132,
-  //     trend: "same",
-  //   },
-  //   {
-  //     rank: 4,
-  //     name: "SkillMaster",
-  //     avatar: "/placeholder.svg?height=40&width=40",
-  //     score: 2250,
-  //     wins: 128,
-  //     trend: "down",
-  //   },
-  //   {
-  //     rank: 5,
-  //     name: "EliteGamer",
-  //     avatar: "/placeholder.svg?height=40&width=40",
-  //     score: 2180,
-  //     wins: 125,
-  //     trend: "up",
-  //   },
-  //   {
-  //     rank: 6,
-  //     name: "Nguyễn Văn A",
-  //     avatar: "/placeholder.svg?height=40&width=40",
-  //     score: 2050,
-  //     wins: 118,
-  //     trend: "up",
-  //     isCurrentUser: true,
-  //   },
-  // ];
 
   const getRankIcon = (rank) => {
     switch (rank) {
@@ -93,7 +42,12 @@ export default function RankingPage() {
       try {
         const response = await gameService.getActiveGames();
         if (response.status === "success") {
-          setAllGames(response.data);
+          const games = response.data;
+          setAllGames(games);
+          // Tự động chọn game đầu tiên nếu chưa có selection
+          if (games.length > 0 && !selectedGame) {
+            setSelectedGame(games[0].id.toString());
+          }
         } else {
           Toast({ title: "Lỗi", description: "Không tải được dữ liệu game", variant: "destructive" });
         }
@@ -107,12 +61,18 @@ export default function RankingPage() {
 
   useEffect(() => {
     const fetchFriendLeaderboards = async () => {
+      // Don't fetch if no game is selected
+      if (!selectedGame) return;
+
       try {
         setLoading(true);
         const response = await rankingService.getTopFriendLeaderBoard(selectedGame, pageFriendsLeaderboards, PAGE_SIZE);
         // console.log("Friend Leaderboard response:", response);
         if (response.status === "success") {
           setFriendLeaderboard(response.data);
+          if (response.pagination) {
+            setTotalPagesFriendsLeaderboards(response.pagination.totalPages || 1);
+          }
         } else {
           Toast({ title: "Lỗi", description: "Không tải được dữ liệu bảng xếp hạng", variant: "destructive" });
         }
@@ -128,11 +88,17 @@ export default function RankingPage() {
 
   useEffect(() => {
     const fetchLeaderboards = async () => {
+      // Don't fetch if no game is selected
+      if (!selectedGame) return;
+
       try {
         setLoading(true);
         const response = await rankingService.getTopLeaderBoard(selectedGame, pageLeaderboards, PAGE_SIZE);
         if (response.status === "success") {
           setLeaderboards(response.data);
+          if (response.pagination) {
+            setTotalPagesLeaderboards(response.pagination.totalPages || 1);
+          }
         } else {
           Toast({ title: "Lỗi", description: "Không tải được dữ liệu bảng xếp hạng", variant: "destructive" });
         }
@@ -161,7 +127,7 @@ export default function RankingPage() {
             </SelectTrigger>
             <SelectContent>
               {allGames.map((game, i) => (
-                <SelectItem key={i} value={game.id}>
+                <SelectItem key={i} value={game.id.toString()}>
                   {game.name}
                 </SelectItem>
               ))}
@@ -188,36 +154,32 @@ export default function RankingPage() {
                   <>
                     {leaderboards.length > 0 ? (
                       <div className="space-y-3">
-                        {leaderboards.map((leaderboard, i) => (
+                        {leaderboards.filter(leaderboard => leaderboard.name !== "Admin").map((leaderboard, i) => (
                           <Link
                             key={i}
                             to={`/profile/${leaderboard.user_id}`}
                             // Todo: kiểm tra user hiện tại có trên bảng không
-                            className={`flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-md ${
-                              false ? "bg-primary/5 border-primary" : "hover:bg-accent"
-                            }`}
+                            className={`flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-md ${false ? "bg-primary/5 border-primary" : "hover:bg-accent"
+                              }`}
                           >
                             <div className="w-8 flex justify-center">{getRankIcon(i + 1)}</div>
                             <Avatar>
-                              <AvatarImage src={leaderboard.avatar_url || "/placeholder.svg"} />
+                              <AvatarImage src={leaderboard.avatar_url || "public/placeholder-user.jpg"} />
                             </Avatar>
                             <div className="flex-1">
                               <div className="font-semibold">{leaderboard.name}</div>
                               <div className="text-sm text-muted-foreground">{leaderboard.wins ?? 0} trận thắng</div>
                             </div>
                             <div className="text-right">
-                              <>
-                                {leaderboard.avg_score === 1 || leaderboard.avg_score === -1 ? (
-                                  <>
-                                    <div className="text-2xl font-bold">{leaderboard.win_rate ?? 0}%</div>
-                                  </>
-                                ) : (
-                                  <>
-                                    <div className="text-2xl font-bold">{leaderboard.avg_score}</div>
-                                    <div className="text-xs text-muted-foreground">điểm</div>
-                                  </>
-                                )}
-                              </>
+                              {/* Game PvP (record <= 1): hiển thị tỷ lệ thắng */}
+                              {leaderboard.record <= 1 ? (
+                                <div className="text-2xl font-bold">{leaderboard.win_rate ?? 0}%</div>
+                              ) : (
+                                <>
+                                  <div className="text-2xl font-bold">{leaderboard.avg_score}</div>
+                                  <div className="text-xs text-muted-foreground">điểm</div>
+                                </>
+                              )}
                             </div>
                           </Link>
                         ))}
@@ -228,10 +190,11 @@ export default function RankingPage() {
                   </>
                 )}
                 {/* Phân trang */}
-                <Pagination
+                <GamePagination
                   currentPage={pageLeaderboards}
+                  totalPages={totalPagesLeaderboards}
                   onNextPage={() => {
-                    if (leaderboards.length < PAGE_SIZE) return;
+                    if (pageLeaderboards >= totalPagesLeaderboards) return;
                     setPageLeaderboards((prev) => prev + 1);
                   }}
                   onPrevPage={() => {
@@ -240,7 +203,8 @@ export default function RankingPage() {
                       return prev - 1;
                     });
                   }}
-                ></Pagination>
+                  hasMore={pageLeaderboards < totalPagesLeaderboards}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -258,14 +222,13 @@ export default function RankingPage() {
                   <>
                     {friendLeaderboards.length > 0 ? (
                       <div className="space-y-3">
-                        {friendLeaderboards.map((leaderboard, i) => (
+                        {friendLeaderboards.filter(leaderboard => leaderboard.name !== "Admin").map((leaderboard, i) => (
                           <Link
                             key={i}
                             to={`/profile/${leaderboard.user_id}`}
                             // Todo: kiểm tra user hiện tại có trên bảng không
-                            className={`flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-md ${
-                              false ? "bg-primary/5 border-primary" : "hover:bg-accent"
-                            }`}
+                            className={`flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-md ${false ? "bg-primary/5 border-primary" : "hover:bg-accent"
+                              }`}
                           >
                             <div className="w-8 flex justify-center">{getRankIcon(i + 1)}</div>
                             <Avatar>
@@ -276,18 +239,15 @@ export default function RankingPage() {
                               <div className="text-sm text-muted-foreground">{leaderboard.wins ?? 0} trận thắng</div>
                             </div>
                             <div className="text-right">
-                              <>
-                                {leaderboard.avg_score === 1 || leaderboard.avg_score === -1 ? (
-                                  <>
-                                    <div className="text-2xl font-bold">{leaderboard.win_rate ?? 0}%</div>
-                                  </>
-                                ) : (
-                                  <>
-                                    <div className="text-2xl font-bold">{leaderboard.avg_score}</div>
-                                    <div className="text-xs text-muted-foreground">điểm</div>
-                                  </>
-                                )}
-                              </>
+                              {/* Game PvP (record = 1 hoặc -1): hiển thị tỷ lệ thắng, game điểm: hiển thị điểm */}
+                              {leaderboard.record <= 1 ? (
+                                <div className="text-2xl font-bold">{leaderboard.win_rate ?? 0}%</div>
+                              ) : (
+                                <>
+                                  <div className="text-2xl font-bold">{leaderboard.avg_score}</div>
+                                  <div className="text-xs text-muted-foreground">điểm</div>
+                                </>
+                              )}
                             </div>
                           </Link>
                         ))}
@@ -298,10 +258,11 @@ export default function RankingPage() {
                   </>
                 )}
                 {/* Phân trang */}
-                <Pagination
+                <GamePagination
                   currentPage={pageFriendsLeaderboards}
+                  totalPages={totalPagesFriendsLeaderboards}
                   onNextPage={() => {
-                    if (friendLeaderboards.length < PAGE_SIZE) return;
+                    if (pageFriendsLeaderboards >= totalPagesFriendsLeaderboards) return;
                     setFriendsPageLeaderboards((prev) => prev + 1);
                   }}
                   onPrevPage={() => {
@@ -310,7 +271,8 @@ export default function RankingPage() {
                       return prev - 1;
                     });
                   }}
-                ></Pagination>
+                  hasMore={pageFriendsLeaderboards < totalPagesFriendsLeaderboards}
+                />
               </CardContent>
             </Card>
           </TabsContent>

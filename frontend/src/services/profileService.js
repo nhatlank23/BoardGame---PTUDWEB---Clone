@@ -41,13 +41,15 @@ export const profileService = {
     const formData = new FormData();
     formData.append("avatar", file);
 
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+    const VITE_API_URL = import.meta.env.VITE_API_URL;
+    const VITE_API_KEY = import.meta.env.VITE_API_KEY;
     const token = localStorage.getItem("token");
 
-    const response = await fetch(`${API_URL}/users/avatar`, {
+    const response = await fetch(`${VITE_API_URL}/users/avatar`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
+        "x-api-key": VITE_API_KEY,
       },
       body: formData,
     });

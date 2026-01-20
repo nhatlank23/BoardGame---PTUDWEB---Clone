@@ -14,17 +14,30 @@ module.exports = {
 
       const PAGE_SIZE = 50;
 
-      const gameId = req.params.game_id;
-      if (!gameId) {
-        return res.status(400).json({ status: "error", message: "Game ID is required" });
+      const gameId = parseInt(req.params.game_id, 10);
+      if (!gameId || isNaN(gameId)) {
+        return res.status(400).json({ status: "error", message: "Game ID is required and must be a number" });
       }
 
       const page = req.query?.page ? Number(req.query?.page) : 1;
       const pageSize = req.query?.pageSize ? Number(req.query?.pageSize) : PAGE_SIZE;
 
+      // Get total count
+      const totalCount = await leaderboardsModel.countPlayersByGameId(gameId);
+      const totalPages = Math.ceil(totalCount / pageSize);
+
       const leaderboards = await leaderboardsModel.getTopGamersByGameId(gameId, page, pageSize);
 
-      return res.json({ status: "success", data: leaderboards });
+      return res.json({
+        status: "success",
+        data: leaderboards,
+        pagination: {
+          page,
+          pageSize,
+          totalCount,
+          totalPages
+        }
+      });
     } catch (err) {
       console.error("getTopGamersByGameId error:", err);
       return res.status(500).json({ status: "error", message: "Internal Server Error" });
@@ -40,17 +53,30 @@ module.exports = {
 
       const PAGE_SIZE = 50;
 
-      const gameId = req.params.game_id;
-      if (!gameId) {
-        return res.status(400).json({ status: "error", message: "Game ID is required" });
+      const gameId = parseInt(req.params.game_id, 10);
+      if (!gameId || isNaN(gameId)) {
+        return res.status(400).json({ status: "error", message: "Game ID is required and must be a number" });
       }
 
       const page = req.query?.page ? Number(req.query?.page) : 1;
       const pageSize = req.query?.pageSize ? Number(req.query?.pageSize) : PAGE_SIZE;
 
+      // Get total count
+      const totalCount = await leaderboardsModel.countFriendsByUserId_GameId(userId, gameId);
+      const totalPages = Math.ceil(totalCount / pageSize);
+
       const leaderboards = await leaderboardsModel.getTopRankingOfFriendByUserId_GameId(userId, gameId, page, pageSize);
 
-      return res.json({ status: "success", data: leaderboards });
+      return res.json({
+        status: "success",
+        data: leaderboards,
+        pagination: {
+          page,
+          pageSize,
+          totalCount,
+          totalPages
+        }
+      });
     } catch (err) {
       console.error("getTopRankingOfFriendById error:", err);
       return res.status(500).json({ status: "error", message: "Internal Server Error" });

@@ -342,6 +342,20 @@ router.get("/history", userController.getUserHistory);
 
 /**
  * @openapi
+ * /api/users/achievements:
+ *   get:
+ *     tags: [Users - Stats]
+ *     summary: Lấy thành tích của người dùng hiện tại
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Danh sách thành tích
+ */
+router.get("/achievements", userController.getUserAchievements);
+
+/**
+ * @openapi
  * /api/users/{id}:
  *   get:
  *     tags: [Users]
@@ -358,9 +372,6 @@ router.get("/history", userController.getUserHistory);
  *       200:
  *         description: Thông tin người dùng
  */
-
-router.get("/achievements", userController.getUserAchievements);
-
 router.get("/:id", userController.getUserById);
 
 /**

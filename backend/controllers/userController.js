@@ -61,6 +61,20 @@ module.exports = {
         ? Number(req.query?.pageSize)
         : PAGE_SIZE;
 
+      // Count total friends
+      const [countAsRequester] = await db("friendships")
+        .where("friendships.requester_id", userId)
+        .andWhere("friendships.status", "accepted")
+        .count("* as count");
+
+      const [countAsAddressee] = await db("friendships")
+        .where("friendships.addressee_id", userId)
+        .andWhere("friendships.status", "accepted")
+        .count("* as count");
+
+      const totalCount = parseInt(countAsRequester.count) + parseInt(countAsAddressee.count);
+      const totalPages = Math.ceil(totalCount / pageSize);
+
       const friendsAsRequester = await db("friendships")
         .where("friendships.requester_id", userId)
         .andWhere("friendships.status", "accepted")
@@ -87,7 +101,15 @@ module.exports = {
         status: r.status || "Offline",
       }));
 
-      return res.json({ data: friends });
+      return res.json({
+        data: friends,
+        pagination: {
+          page,
+          pageSize,
+          totalCount,
+          totalPages
+        }
+      });
     } catch (err) {
       console.error("getFriends error:", err);
       return res
@@ -113,6 +135,14 @@ module.exports = {
         ? Number(req.query?.pageSize)
         : PAGE_SIZE;
 
+      // Count total pending requests
+      const [{ count: totalCount }] = await db("friendships")
+        .where("friendships.addressee_id", userId)
+        .andWhere("friendships.status", "pending")
+        .count("* as count");
+
+      const totalPages = Math.ceil(parseInt(totalCount) / pageSize);
+
       const rows = await db("friendships")
         .where("friendships.addressee_id", userId)
         .andWhere("friendships.status", "pending")
@@ -128,7 +158,15 @@ module.exports = {
         avatar: r.avatar_url || null,
       }));
 
-      return res.json({ data: requests });
+      return res.json({
+        data: requests,
+        pagination: {
+          page,
+          pageSize,
+          totalCount: parseInt(totalCount),
+          totalPages
+        }
+      });
     } catch (err) {
       console.error("getFriendRequests error:", err);
       return res
@@ -334,39 +372,75 @@ module.exports = {
   },
 
   // GET /api/messages/:receiver_id
+  // Query params: ?before=<message_id>&limit=<number>
   getMessages: async (req, res) => {
     try {
       const userId = req.user?.id || req.userId;
-      if (!userId) {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
-      }
+      if (!userId) return res.status(401).json({ status: "error", message: "Unauthorized" });
 
       const receiverId = req.params.receiver_id;
-      if (!receiverId) {
-        return res
-          .status(400)
-          .json({ status: "error", message: "receiver_id is required" });
-      }
+      if (!receiverId) return res.status(400).json({ status: "error", message: "receiver_id is required" });
 
-      const messages = await db("messages")
+      const limit = parseInt(req.query.limit) || 30;
+
+      // SỬA: Không dùng parseInt cho 'before' vì nó là chuỗi thời gian (ISO String)
+      const before = req.query.before || null;
+
+      // 1. Lấy tin nhắn
+      let query = db("messages")
         .where(function () {
-          this.where({ sender_id: userId, receiver_id: receiverId }).orWhere({
-            sender_id: receiverId,
-            receiver_id: userId,
-          });
+          this.where({ sender_id: userId, receiver_id: receiverId })
+            .orWhere({ sender_id: receiverId, receiver_id: userId });
         })
         .select("id", "sender_id", "receiver_id", "content", "created_at")
-        .orderBy("created_at", "asc")
-        .limit(200);
+        .orderBy("created_at", "desc") // Sắp xếp theo thời gian mới nhất
+        .limit(limit);
 
-      return res.json({ data: messages });
+      if (before) {
+        query = query.where("created_at", "<", before); // So sánh thời gian với thời gian
+      }
+
+      const messagesDesc = await query;
+      const oldestMsg = messagesDesc.length > 0 ? messagesDesc[messagesDesc.length - 1] : null;
+
+      // nextCursor bây giờ là chuỗi thời gian
+      const nextCursor = oldestMsg ? oldestMsg.created_at : null;
+      const sortedMessages = [...messagesDesc].reverse();
+
+      // 2. Logic check hasMore (SỬA LỖI UUID TẠI ĐÂY)
+      let hasMore = false;
+      if (messagesDesc.length === limit && nextCursor) {
+        const [{ count: olderCount }] = await db("messages")
+          .where(function () {
+            this.where({ sender_id: userId, receiver_id: receiverId })
+              .orWhere({ sender_id: receiverId, receiver_id: userId });
+          })
+          .where("created_at", "<", nextCursor) // SỬA: So sánh created_at với nextCursor
+          .count("* as count");
+
+        hasMore = parseInt(olderCount) > 0;
+      }
+
+      // 3. Tính tổng tin nhắn (Để hiện số lượng nếu cần)
+      const [{ count: totalCount }] = await db("messages")
+        .where(function () {
+          this.where({ sender_id: userId, receiver_id: receiverId })
+            .orWhere({ sender_id: receiverId, receiver_id: userId });
+        })
+        .count("* as count");
+
+      return res.json({
+        data: sortedMessages,
+        pagination: {
+          totalCount: parseInt(totalCount),
+          hasMore,
+          nextCursor: hasMore ? nextCursor : null
+        }
+      });
+
     } catch (err) {
       console.error("getMessages error:", err);
-      return res
-        .status(500)
-        .json({ status: "error", message: "Internal Server Error" });
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },
 

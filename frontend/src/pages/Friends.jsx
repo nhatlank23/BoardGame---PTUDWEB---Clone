@@ -10,8 +10,9 @@ import { Search, UserPlus, Check, X, MessageCircle } from "lucide-react";
 import { friendService } from "@/services/friendService";
 import { profileService } from "@/services/profileService";
 import { useToast } from "@/hooks/use-toast";
+import GamePagination from "../components/ui/GamePagination";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 3;
 
 export default function FriendsPage() {
   const { toast } = useToast();
@@ -24,7 +25,9 @@ export default function FriendsPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const [pageFriends, setPageFriends] = useState(1);
+  const [totalPagesFriends, setTotalPagesFriends] = useState(1);
   const [pageFriendRequests, setPageFriendRequests] = useState(1);
+  const [totalPagesRequests, setTotalPagesRequests] = useState(1);
 
   const [isSearching, setIsSearching] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
@@ -43,7 +46,7 @@ export default function FriendsPage() {
     fetchCurrentUser();
   }, []);
 
-  const goToPrevPage = () => {};
+  const goToPrevPage = () => { };
 
   const fetchCurrentUser = async () => {
     try {
@@ -65,6 +68,9 @@ export default function FriendsPage() {
       const response = await friendService.getFriends(pageFriends, PAGE_SIZE);
       if (response.data) {
         setFriends(response.data);
+        if (response.pagination) {
+          setTotalPagesFriends(response.pagination.totalPages || 1);
+        }
       }
     } catch (error) {
       console.error("Error loading friends:", error);
@@ -83,6 +89,9 @@ export default function FriendsPage() {
       const response = await friendService.getFriendRequests(pageFriendRequests, PAGE_SIZE);
       if (response.data) {
         setFriendRequests(response.data);
+        if (response.pagination) {
+          setTotalPagesRequests(response.pagination.totalPages || 1);
+        }
       }
     } catch (error) {
       console.error("Error loading friend requests:", error);
@@ -250,9 +259,6 @@ export default function FriendsPage() {
           <TabsList>
             <TabsTrigger value="all">
               Tất cả bạn bè
-              <Badge variant="secondary" className="ml-2">
-                {friends.length}
-              </Badge>
             </TabsTrigger>
             <TabsTrigger value="requests">
               Lời mời
@@ -271,7 +277,6 @@ export default function FriendsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Danh sách bạn bè</CardTitle>
-                <CardDescription>{friends.length} người bạn</CardDescription>
               </CardHeader>
               <CardContent>
                 {isLoading ? (
@@ -315,25 +320,21 @@ export default function FriendsPage() {
                 )}
 
                 <div className="w-full flex flex-row justify-center items-center gap-5 mt-3">
-                  <Button
-                    onClick={() => {
+                  <GamePagination
+                    currentPage={pageFriends}
+                    totalPages={totalPagesFriends}
+                    onNextPage={() => {
+                      if (pageFriends >= totalPagesFriends) return;
+                      setPageFriends((prev) => prev + 1);
+                    }}
+                    onPrevPage={() => {
                       setPageFriends((prev) => {
                         if (prev <= 1) return prev;
                         return prev - 1;
                       });
                     }}
-                  >
-                    Trang trước
-                  </Button>
-                  <p>{pageFriends}</p>
-                  <Button
-                    onClick={() => {
-                      if (friends.length < PAGE_SIZE) return;
-                      setPageFriends((prev) => prev + 1);
-                    }}
-                  >
-                    Trang tiếp
-                  </Button>
+                    hasMore={pageFriends < totalPagesFriends}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -379,25 +380,21 @@ export default function FriendsPage() {
                 )}
 
                 <div className="w-full flex flex-row justify-center items-center gap-5 mt-3">
-                  <Button
-                    onClick={() => {
+                  <GamePagination
+                    currentPage={pageFriendRequests}
+                    totalPages={totalPagesRequests}
+                    onNextPage={() => {
+                      if (pageFriendRequests >= totalPagesRequests) return;
+                      setPageFriendRequests((prev) => prev + 1);
+                    }}
+                    onPrevPage={() => {
                       setPageFriendRequests((prev) => {
                         if (prev <= 1) return prev;
                         return prev - 1;
                       });
                     }}
-                  >
-                    Trang trước
-                  </Button>
-                  <p>{pageFriendRequests}</p>
-                  <Button
-                    onClick={() => {
-                      if (friends.length < PAGE_SIZE) return;
-                      setPageFriendRequests((prev) => prev + 1);
-                    }}
-                  >
-                    Trang tiếp
-                  </Button>
+                    hasMore={pageFriendRequests < totalPagesRequests}
+                  />
                 </div>
               </CardContent>
             </Card>

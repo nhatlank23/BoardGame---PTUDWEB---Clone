@@ -5,6 +5,35 @@ const authMiddleware = require('../middlewares/authMiddleware');
 
 /**
  * @openapi
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: ID người dùng
+ *         username:
+ *           type: string
+ *           description: Tên người dùng
+ *         email:
+ *           type: string
+ *           format: email
+ *           description: Email
+ *         avatar_url:
+ *           type: string
+ *           description: URL ảnh đại diện
+ *         role:
+ *           type: string
+ *           enum: [player, admin]
+ *           description: Vai trò người dùng
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ */
+
+/**
+ * @openapi
  * /api/auth/send-register-otp:
  *   post:
  *     tags: [Auth]

@@ -1,6 +1,14 @@
 const db = require("../configs/db");
 
 class LeaderboardsModel {
+  // Count distinct players by game ID
+  static async countPlayersByGameId(gameId) {
+    const [{ count }] = await db("play_history")
+      .where("play_history.game_id", gameId)
+      .countDistinct("play_history.user_id as count");
+    return parseInt(count);
+  }
+
   // Get top gamers by game ID
   static async getTopGamersByGameId(gameId, page = 1, pageSize = 50) {
     const leaderboards = await db("play_history")
@@ -30,6 +38,27 @@ class LeaderboardsModel {
     return leaderboards;
   }
 
+  // Count friends who played this game
+  static async countFriendsByUserId_GameId(userId, gameId) {
+    const [{ count }] = await db("play_history")
+      .join("friendships", function () {
+        this.on("friendships.requester_id", "=", "play_history.user_id").orOn(
+          "friendships.addressee_id",
+          "=",
+          "play_history.user_id"
+        );
+      })
+      .where(function () {
+        this.where("friendships.requester_id", userId).orWhere(
+          "friendships.addressee_id",
+          userId
+        );
+      })
+      .andWhere("play_history.game_id", gameId)
+      .countDistinct("play_history.user_id as count");
+    return parseInt(count);
+  }
+
   static async getTopRankingOfFriendByUserId_GameId(
     userId,
     gameId,
@@ -47,7 +76,7 @@ class LeaderboardsModel {
         );
       })
       // .where("friendships.status", "accepted")
-      .Where(function () {
+      .where(function () {
         this.where("friendships.requester_id", userId).orWhere(
           "friendships.addressee_id",
           userId
@@ -79,3 +108,4 @@ class LeaderboardsModel {
 }
 
 module.exports = LeaderboardsModel;
+

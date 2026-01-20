@@ -186,49 +186,86 @@ exports.seed = async function (knex) {
   const namId = userIds[2];
 
   const chatData = [
-    // Ngày 18/01 - Bàn về AI Caro
-    { s: locId, r: namId, c: "Nam ơi, ông thấy con AI cấp Hard của game mình sao?", t: "2026-01-18T10:00:00Z" },
-    { s: namId, r: locId, c: "Khó vãi chưởng, tui đánh nãy giờ toàn thua đường chéo.", t: "2026-01-18T10:01:30Z" },
-    { s: locId, r: namId, c: "Tui mới sửa lại cái trọng số phòng thủ, giờ nó chặn hàng 3 gắt lắm.", t: "2026-01-18T10:02:45Z" },
-    { s: namId, r: locId, c: "Hèn chi, tui định giăng bẫy mà nó nhìn ra hết trơn.", t: "2026-01-18T10:04:00Z" },
-    { s: locId, r: namId, c: "Ông thử tập trung cao độ xem có thắng được nó không? 😂", t: "2026-01-18T10:05:20Z" },
-    { s: namId, r: locId, c: "Tui là người chơi chứ có phải máy đâu mà dùng thuật toán!", t: "2026-01-18T10:06:10Z" },
+    // --- NGÀY 18/01: TRẬN CHIẾN CARO MỞ MÀN ---
+    // Bắt đầu rủ rê
+    { s: namId, r: locId, c: "Ê Lộc, rảnh không vào làm vài ván Caro?", t: "2026-01-18T19:30:00Z" },
+    { s: locId, r: namId, c: "Đang rảnh nè, tạo phòng đi ông.", t: "2026-01-18T19:30:45Z" },
+    { s: namId, r: locId, c: "Phòng số 1, pass 123 nhé. Vào lẹ.", t: "2026-01-18T19:31:10Z" },
+    { s: locId, r: namId, c: "Rồi đó, start đi.", t: "2026-01-18T19:31:30Z" },
 
-    // Ngày 19/01 - Thách đấu Snake
-    { s: namId, r: locId, c: "Mới phá kỷ lục Snake của ông nè, 200 điểm nhé!", t: "2026-01-19T14:20:00Z" },
-    { s: locId, r: namId, c: "Ảo thật, ông chơi bản tốc độ mấy đó?", t: "2026-01-19T14:21:15Z" },
-    { s: namId, r: locId, c: "Tốc độ 5 luôn, nhanh vù vù.", t: "2026-01-19T14:22:30Z" },
-    { s: locId, r: namId, c: "Đợi đó, chiều nay tui lấy lại Top 1 cho xem.", t: "2026-01-19T14:24:00Z" },
-    { s: namId, r: locId, c: "Lên đi, tui đợi. Đừng có để đâm đầu vào tường sớm quá nha.", t: "2026-01-19T14:25:45Z" },
-    { s: locId, r: namId, c: "Kaka, yên tâm, tay lái lụa lắm.", t: "2026-01-19T14:27:00Z" },
+    // Trong trận đấu
+    { s: namId, r: locId, c: "Nước này ông đi sai rồi, toang chưa con trai =))", t: "2026-01-18T19:35:00Z" },
+    { s: locId, r: namId, c: "Khoan, nãy lỡ tay bấm nhầm ô, cho đi lại đi 🥺", t: "2026-01-18T19:35:15Z" },
+    { s: namId, r: locId, c: "Mơ đi cưng, bút sa gà chết.", t: "2026-01-18T19:35:40Z" },
+    { s: locId, r: namId, c: "Ác vãi. Đợi đấy tui chặn đầu này.", t: "2026-01-18T19:36:00Z" },
+    { s: namId, r: locId, c: "Chặn đầu này thì tui đi đầu kia, 4 nước rồi, đỡ sao nổi.", t: "2026-01-18T19:36:30Z" },
+    { s: locId, r: namId, c: "Cay thế nhờ!!! Ván nữa, ván này nháp.", t: "2026-01-18T19:37:00Z" },
 
-    // Ngày 20/01 - Sáng: Bàn về UI/UX
-    { s: locId, r: namId, c: "Nam, ông thấy cái Dark Mode mới cập nhật nhìn ổn không?", t: "2026-01-20T08:00:00Z" },
-    { s: namId, r: locId, c: "Đẹp đó, nhìn dịu mắt hơn hẳn cái bản sáng màu.", t: "2026-01-20T08:02:00Z" },
-    { s: locId, r: namId, c: "Ừ, tui cũng định chỉnh lại mấy cái icon Achievement cho nó 3D tí.", t: "2026-01-20T08:04:30Z" },
-    { s: namId, r: locId, c: "Dùng bộ icon Icons8 tui gửi hôm qua chưa?", t: "2026-01-20T08:06:00Z" },
-    { s: locId, r: namId, c: "Rồi, nhìn chuyên nghiệp hơn hẳn.", t: "2026-01-20T08:08:00Z" },
+    // Đổ thừa hoàn cảnh
+    { s: namId, r: locId, c: "Nháp gì mà 3 ván thua thông rồi cha.", t: "2026-01-18T19:45:00Z" },
+    { s: locId, r: namId, c: "Tại con chuột nay nó bị double click á, chứ trình ông sao ăn tui được.", t: "2026-01-18T19:45:45Z" },
+    { s: namId, r: locId, c: "Thôi văn vở quá, nghỉ nha, đi ăn cơm.", t: "2026-01-18T19:46:10Z" },
+    { s: locId, r: namId, c: "Chạy sớm thế? Sợ thua à? Ok bai.", t: "2026-01-18T19:46:30Z" },
 
-    // Ngày 20/01 - Trưa: Thách đấu trực tiếp
-    { s: namId, r: locId, c: "Vào làm ván Caro không? Tui vừa tìm ra cách thắng AI rồi.", t: "2026-01-20T11:30:00Z" },
-    { s: locId, r: namId, c: "Ok, đợi tui 2 phút, đang dọn nốt cái database.", t: "2026-01-20T11:31:45Z" },
-    { s: namId, r: locId, c: "Nhanh nha, tui tạo phòng Caro 5 rồi đó.", t: "2026-01-20T11:33:00Z" },
-    { s: locId, r: namId, c: "Phòng tên gì?", t: "2026-01-20T11:34:20Z" },
-    { s: namId, r: locId, c: "LOC_GAMING_NOOB 😂", t: "2026-01-20T11:35:10Z" },
-    { s: locId, r: namId, c: "Vãi, ông đặt tên khịa tui à? Đợi đó!", t: "2026-01-20T11:36:00Z" },
-    { s: namId, r: locId, c: "Haha, vào đi rồi biết ai Noob.", t: "2026-01-20T11:37:30Z" },
+    // --- NGÀY 19/01: ĐUA TOP SNAKE (RẮN SĂN MỒI) ---
+    // Khoe điểm
+    { s: locId, r: namId, c: "Nam ơi, vào check bảng xếp hạng Snake đi. Hết hồn chưa? 😎", t: "2026-01-19T10:15:00Z" },
+    { s: namId, r: locId, c: "Gì? Ông cày lên 500 điểm á? Hack à?", t: "2026-01-19T10:16:20Z" },
+    { s: locId, r: namId, c: "Hack gì, tay to đấy. Cày cả buổi sáng nay.", t: "2026-01-19T10:17:00Z" },
+    { s: namId, r: locId, c: "Ghê đấy. Để tui vào đua thử.", t: "2026-01-19T10:18:00Z" },
 
-    // Chiều nay - Sau trận đấu
-    { s: locId, r: namId, c: "Cay quá, nãy tui sơ hở tí thôi.", t: "2026-01-20T13:00:00Z" },
-    { s: namId, r: locId, c: "Thắng là thắng, thua là thua nha ông.", t: "2026-01-20T13:02:00Z" },
-    { s: locId, r: namId, c: "Ván sau tui dùng nút HINT cho ông xem sức mạnh máy tính.", t: "2026-01-20T13:04:00Z" },
-    { s: namId, r: locId, c: "Chơi ăn gian vậy ai chơi lại!", t: "2026-01-20T13:05:30Z" },
-    { s: locId, r: namId, c: "Nút đó sinh ra để dùng mà haha.", t: "2026-01-20T13:07:00Z" },
-    { s: namId, r: locId, c: "Thôi nghỉ tí đi, tí còn check lại game Match-3.", t: "2026-01-20T13:10:00Z" },
-    { s: locId, r: namId, c: "Ok, 15h gặp lại trên Hub nhé.", t: "2026-01-20T13:12:00Z" },
-    { s: namId, r: locId, c: "Gút chóp!", t: "2026-01-20T13:15:00Z" },
+    // Quá trình leo rank
+    { s: namId, r: locId, c: "Cái game này tốc độ tăng nhanh quá, mới 200 điểm mà rắn chạy như bay.", t: "2026-01-19T10:40:00Z" },
+    { s: locId, r: namId, c: "Kaka, tập trung vào, đừng để đâm đầu vào tường.", t: "2026-01-19T10:41:15Z" },
+    { s: namId, r: locId, c: "AAAA!!! Chết nhảm vãi. 490 điểm rồi mà bấm lộn nút xuống.", t: "2026-01-19T10:55:00Z" },
+    { s: locId, r: namId, c: "Thiếu 10 điểm nữa thôi, cố lên bạn ei =))", t: "2026-01-19T10:55:40Z" },
+    { s: namId, r: locId, c: "Tức cái lồng ngực. Tí trưa chơi tiếp, giờ đi học đã.", t: "2026-01-19T10:56:00Z" },
+
+    // --- NGÀY 19/01: BUỔI TỐI (CHÉM GIÓ & TIC-TAC-TOE) ---
+    { s: locId, r: namId, c: "Alo, ngủ chưa?", t: "2026-01-19T23:00:00Z" },
+    { s: namId, r: locId, c: "Chưa, đang lướt TikTok. Sao đó?", t: "2026-01-19T23:00:30Z" },
+    { s: locId, r: namId, c: "Vào Tic-tac-toe giải trí tí đi, game này nhanh.", t: "2026-01-19T23:01:00Z" },
+    { s: namId, r: locId, c: "Tic-tac-toe toàn hòa chứ đánh đấm gì.", t: "2026-01-19T23:01:45Z" },
+    { s: locId, r: namId, c: "Ai bảo ông thế, tui mới học được chiêu 'tam giác quỷ', chấp ông đi trước.", t: "2026-01-19T23:02:15Z" },
+    { s: namId, r: locId, c: "Gáy sớm thì thường ăn gì biết rồi đấy. Vào đi.", t: "2026-01-19T23:03:00Z" },
+
+    // Sau vài ván
+    { s: namId, r: locId, c: "Đấy, đã bảo toàn hòa mà. Ông lừa tui à?", t: "2026-01-19T23:15:00Z" },
+    { s: locId, r: namId, c: "Tại ông thủ kĩ quá thôi. Thôi đi ngủ, mai còn thi.", t: "2026-01-19T23:16:00Z" },
+    { s: namId, r: locId, c: "Ok g9.", t: "2026-01-19T23:16:30Z" },
+
+    // --- NGÀY 20/01: TRẬN CHIẾN SINH TỬ HÔM NAY ---
+    // Sáng: Rủ rê rematch Caro
+    { s: namId, r: locId, c: "Nay rảnh cả ngày, làm kèo BO5 (Best of 5) Caro không?", t: "2026-01-20T09:00:00Z" },
+    { s: locId, r: namId, c: "Chơi luôn, sợ gì. Ai thua bao nước ngọt nhé.", t: "2026-01-20T09:01:00Z" },
+    { s: namId, r: locId, c: "Chốt. Vào room cũ đi.", t: "2026-01-20T09:01:30Z" },
+
+    // Ván 1
+    { s: locId, r: namId, c: "Đánh lẹ đi ông, suy nghĩ gì mà như đánh cờ tướng thế.", t: "2026-01-20T09:05:00Z" },
+    { s: namId, r: locId, c: "Từ từ, sai một ly đi một dặm. Ông hối là tui cuống đấy.", t: "2026-01-20T09:05:45Z" },
+    { s: namId, r: locId, c: "Haha! Thấy nước đôi chưa? Chặn đằng trời.", t: "2026-01-20T09:08:00Z" },
+    { s: locId, r: namId, c: "Ui xời, sơ suất quá. 1-0 cho ông.", t: "2026-01-20T09:08:30Z" },
+
+    // Ván 2 & 3
+    { s: namId, r: locId, c: "Sao nay đánh yếu thế? 2-0 rồi kìa.", t: "2026-01-20T09:15:00Z" },
+    { s: locId, r: namId, c: "Đang khởi động thôi. Giờ mới đánh thật nè.", t: "2026-01-20T09:15:45Z" },
+    { s: locId, r: namId, c: "Bùm! 4 con chéo, ông không nhìn ra à?", t: "2026-01-20T09:20:00Z" },
+    { s: namId, r: locId, c: "Vãi, mải chặn hàng ngang không để ý. 2-1.", t: "2026-01-20T09:20:40Z" },
+
+    // Ván quyết định
+    { s: locId, r: namId, c: "2 đều rồi nha. Ván này chung kết.", t: "2026-01-20T09:40:00Z" },
+    { s: namId, r: locId, c: "Tim đập nhanh quá :))", t: "2026-01-20T09:40:30Z" },
+    { s: locId, r: namId, c: "Lag quá ông ơi, server bị gì vậy, tui không đặt cờ được!", t: "2026-01-20T09:45:00Z" },
+    { s: namId, r: locId, c: "Bên tui bình thường mà. Hay mạng nhà ông yếu?", t: "2026-01-20T09:45:30Z" },
+    { s: locId, r: namId, c: "Mất kết nối luôn rồi... Thôi hòa nha, ván này không tính.", t: "2026-01-20T09:46:00Z" },
+    { s: namId, r: locId, c: "Khôn như ông quê tui đầy =)) Thôi tính hòa, mốt đánh lại.", t: "2026-01-20T09:47:00Z" },
+
+    // Chat hiện tại
+    { s: locId, r: namId, c: "Nghỉ tay tí, lát chiều tui qua nhà ông chơi.", t: "2026-01-20T10:00:00Z" },
+    { s: namId, r: locId, c: "Ok, qua nhớ mua nước ngọt nãy cá cược đấy nhé.", t: "2026-01-20T10:01:00Z" },
+    { s: locId, r: namId, c: "Đã bảo hòa rồi mà! Keo kiệt vãi.", t: "2026-01-20T10:02:00Z" },
+    { s: namId, r: locId, c: "Haha đùa thôi, qua lẹ đi.", t: "2026-01-20T10:02:30Z" }
   ];
-
   await knex("messages").insert(chatData.map(d => ({
     sender_id: d.s,
     receiver_id: d.r,
