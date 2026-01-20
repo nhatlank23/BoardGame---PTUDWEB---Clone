@@ -1,9 +1,14 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { Header } from "@/components/header";
+import { Sidebar } from "@/components/sidebar";
 import { Loader2 } from "lucide-react";
 import { GameController } from "@/components/games/GameController";
 import { gameService } from "@/services/gameService";
 import { useToast } from "@/hooks/use-toast";
+import { GameReviews } from "@/components/GameReviews";
+import { useAuth } from "@/context/AuthContext";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const MATRIX_ICONS = {
   "caro-5": [
@@ -94,9 +99,11 @@ export default function HomePage() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const containerRef = useRef(null);
+  const { user } = useAuth();
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [activeTab, setActiveTab] = useState("info");
 
   // Auto focus container on mount
   useEffect(() => {
@@ -155,9 +162,9 @@ export default function HomePage() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (loading || games.length === 0) return;
-      
+
       console.log("Key pressed:", e.key); // Debug log
-      
+
       switch (e.key) {
         case "ArrowRight":
           e.preventDefault();
@@ -215,13 +222,12 @@ export default function HomePage() {
   };
 
   return (
-    <div 
-      ref={containerRef}
-      className="bg-background text-foreground overflow-hidden font-sans outline-none" 
-      tabIndex={0}
-    >
-      <main className="p-8 flex flex-col">
-        <div className="max-w-7xl mx-auto w-full grid lg:grid-cols-2 gap-12 items-center my-auto">
+    <div ref={containerRef} className="min-h-screen bg-background text-foreground overflow-hidden font-sans outline-none" tabIndex={0}>
+      <Header />
+      <Sidebar />
+
+      <main className="ml-64 mt-16 p-8 h-[calc(100vh-64px)] flex flex-col">
+        <div className="max-w-7xl mx-auto w-full grid lg:grid-cols-2 gap-12 items-start my-auto h-full">
           <div className="flex flex-col items-center space-y-8">
             <div className="flex flex-col items-center">
               {loading ? (
@@ -237,13 +243,27 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="h-full flex flex-col overflow-hidden">
             {!loading && games[selectedIndex] && (
-              <div className="animate-in slide-in-from-right duration-500">
-                <h1 className="text-6xl font-black italic uppercase text-transparent bg-clip-text bg-gradient-to-br from-foreground to-muted-foreground">
-                  {games[selectedIndex].name}
-                </h1>
-              </div>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
+                <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
+                  <TabsTrigger value="info">Thông tin</TabsTrigger>
+                  <TabsTrigger value="reviews">Đánh giá</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="info" className="mt-6 flex-1 overflow-auto">
+                  <div className="animate-in slide-in-from-right duration-500">
+                    <h1 className="text-6xl font-black italic uppercase text-transparent bg-clip-text bg-gradient-to-br from-foreground to-muted-foreground">
+                      {games[selectedIndex].name}
+                    </h1>
+                    <p className="mt-4 text-muted-foreground text-lg">Nhấn ENTER để bắt đầu chơi</p>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="reviews" className="mt-6 flex-1 overflow-auto pr-2">
+                  <GameReviews gameId={games[selectedIndex].id} currentUserId={user?.id} />
+                </TabsContent>
+              </Tabs>
             )}
           </div>
         </div>

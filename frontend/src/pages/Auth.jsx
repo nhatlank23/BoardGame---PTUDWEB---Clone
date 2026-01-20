@@ -250,7 +250,7 @@ export default function AuthPage() {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
             <Gamepad2 className="h-10 w-10 text-primary" />
-            <span className="text-2xl font-bold">GameHub</span>
+            <span className="text-2xl font-bold">Board Game</span>
           </Link>
           <h1 className="text-3xl font-bold">{showForgotPassword ? "Quên mật khẩu" : "Chào mừng trở lại"}</h1>
           <p className="text-muted-foreground mt-2">{showForgotPassword ? "Đặt lại mật khẩu của bạn" : "Đăng nhập để tiếp tục chơi"}</p>
