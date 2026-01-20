@@ -11,6 +11,8 @@ import { useAuth } from "@/context/AuthContext";
 import { friendService } from "@/services/friendService";
 import { messageService } from "@/services/messageService";
 
+const PAGE_SIZE = 50;
+
 export default function MessagesPage() {
   const { user } = useAuth();
   const location = useLocation();
@@ -19,13 +21,16 @@ export default function MessagesPage() {
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isLoadingFriends, setIsLoadingFriends] = useState(false);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const messagesEndRef = useRef(null);
+  const [isEndPage, setIsEndPage] = useState(false);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     loadFriends();
-  }, []);
+  }, [page]);
 
   // Auto-select friend if passed via navigation state
   useEffect(() => {
@@ -52,19 +57,37 @@ export default function MessagesPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // const loadMoreFriend = async () => {
+  //   try {
+  //     setLoading(true);
+  //     setError(null);
+  //     const response = await friendService.getFriends();
+  //     if (response?.data) {
+  //       // setFriends((prev) => [...prev, ...response.data]);
+  //     }
+  //   } catch (err) {
+  //     console.error("Error loading friends:", err);
+  //     setError("Không thể tải danh sách bạn bè");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const loadFriends = async () => {
     try {
-      setLoading(true);
+      setIsLoadingFriends(true);
       setError(null);
-      const response = await friendService.getFriends();
+      const response = await friendService.getFriends(page, PAGE_SIZE);
       if (response?.data) {
-        setFriends(response.data);
+        const newData = response.data;
+        if (newData && newData.length <= 0) setIsEndPage(true);
+        setFriends([...friends, ...newData]);
       }
     } catch (err) {
       console.error("Error loading friends:", err);
       setError("Không thể tải danh sách bạn bè");
     } finally {
-      setLoading(false);
+      setIsLoadingFriends(false);
     }
   };
 
@@ -108,11 +131,17 @@ export default function MessagesPage() {
   };
 
   const filteredFriends = friends.filter(
-    (friend) => friend.name?.toLowerCase().includes(searchQuery.toLowerCase()) || friend.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    (friend) => friend.name?.toLowerCase().includes(searchQuery.toLowerCase()) || friend.email?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
-        <main className="flex flex-col overflow-hidden h-full px-24">
+    <div className="h-screen flex flex-col">
+      <Header />
+
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+
+        <main className="flex-1 ml-64 mt-16 pl-8 flex flex-col overflow-hidden">
           <div className="flex-shrink-0 p-8 pb-0">
             <h1 className="text-4xl font-bold">Tin nhắn</h1>
           </div>
@@ -132,7 +161,7 @@ export default function MessagesPage() {
                       </div>
                     </div>
                     <div className="flex-1 overflow-y-auto min-h-0">
-                      {loading && friends.length === 0 && <div className="p-4 text-center text-muted-foreground">Đang tải...</div>}
+                      {loading && filteredFriends.length === 0 && <div className="p-4 text-center text-muted-foreground">Đang tải...</div>}
                       {!loading && filteredFriends.length === 0 && <div className="p-4 text-center text-muted-foreground">Không có bạn bè</div>}
                       {filteredFriends.map((friend) => (
                         <button
@@ -160,6 +189,23 @@ export default function MessagesPage() {
                           </div>
                         </button>
                       ))}
+                      {isLoadingFriends && <div className="p-4 text-center text-muted-foreground">Đang tải...</div>}
+
+                      {!isEndPage ? (
+                        <div className="flex justify-center items-center m-2">
+                          <p
+                            onClick={() => {
+                              if (isEndPage) return;
+                              setPage((prev) => prev + 1);
+                            }}
+                            className="text-center text-muted-foreground py-1 px-4 rounded-full bg-foreground/10 w-fit hover:bg-foreground/15 cursor-pointer"
+                          >
+                            Hiện thêm
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="p-4 text-center text-muted-foreground">Hết</div>
+                      )}
                     </div>
                   </div>
 

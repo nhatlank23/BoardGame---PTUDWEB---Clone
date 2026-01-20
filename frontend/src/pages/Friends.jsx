@@ -11,6 +11,8 @@ import { friendService } from "@/services/friendService";
 import { profileService } from "@/services/profileService";
 import { useToast } from "@/hooks/use-toast";
 
+const PAGE_SIZE = 50;
+
 export default function FriendsPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -20,16 +22,28 @@ export default function FriendsPage() {
   const [searchResults, setSearchResults] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const [pageFriends, setPageFriends] = useState(1);
+  const [pageFriendRequests, setPageFriendRequests] = useState(1);
+
   const [isSearching, setIsSearching] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
 
   // Load friends on mount
   useEffect(() => {
     loadFriends();
+  }, [pageFriends]);
+
+  useEffect(() => {
     loadFriendRequests();
+  }, [pageFriendRequests]);
+
+  useEffect(() => {
     loadSentRequests();
     fetchCurrentUser();
   }, []);
+
+  const goToPrevPage = () => {};
 
   const fetchCurrentUser = async () => {
     try {
@@ -48,7 +62,7 @@ export default function FriendsPage() {
   const loadFriends = async () => {
     try {
       setIsLoading(true);
-      const response = await friendService.getFriends();
+      const response = await friendService.getFriends(pageFriends, PAGE_SIZE);
       if (response.data) {
         setFriends(response.data);
       }
@@ -66,7 +80,7 @@ export default function FriendsPage() {
 
   const loadFriendRequests = async () => {
     try {
-      const response = await friendService.getFriendRequests();
+      const response = await friendService.getFriendRequests(pageFriendRequests, PAGE_SIZE);
       if (response.data) {
         setFriendRequests(response.data);
       }
@@ -303,6 +317,28 @@ export default function FriendsPage() {
                       ))}
                     </div>
                   )}
+
+                  <div className="w-full flex flex-row justify-center items-center gap-5 mt-3">
+                    <Button
+                      onClick={() => {
+                        setPageFriends((prev) => {
+                          if (prev <= 1) return prev;
+                          return prev - 1;
+                        });
+                      }}
+                    >
+                      Trang trước
+                    </Button>
+                    <p>{pageFriends}</p>
+                    <Button
+                      onClick={() => {
+                        if (friends.length < PAGE_SIZE) return;
+                        setPageFriends((prev) => prev + 1);
+                      }}
+                    >
+                      Trang tiếp
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -345,6 +381,28 @@ export default function FriendsPage() {
                       ))}
                     </div>
                   )}
+
+                  <div className="w-full flex flex-row justify-center items-center gap-5 mt-3">
+                    <Button
+                      onClick={() => {
+                        setPageFriendRequests((prev) => {
+                          if (prev <= 1) return prev;
+                          return prev - 1;
+                        });
+                      }}
+                    >
+                      Trang trước
+                    </Button>
+                    <p>{pageFriendRequests}</p>
+                    <Button
+                      onClick={() => {
+                        if (friends.length < PAGE_SIZE) return;
+                        setPageFriendRequests((prev) => prev + 1);
+                      }}
+                    >
+                      Trang tiếp
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
