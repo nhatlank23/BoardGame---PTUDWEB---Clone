@@ -110,55 +110,69 @@ async function updateGame(gameId, updateData) {
 }
 
 /**
- * Tạo lịch sử chơi, cập nhật leaderboard và xóa session
+ * Tạo lịch sử chơi, cập nhật leaderboard, xóa session và kiểm tra thành tựu
  * @param {number} userId - ID của user
  * @param {number} gameId - ID của game
  * @param {number} score - Điểm đạt được
  * @param {number} duration - Thời gian chơi
- * @returns {Promise<Object>} Lịch sử chơi đã tạo
+ * @param {Object} gameData - Additional game data for achievement checking
+ * @returns {Promise<Object>} Lịch sử chơi đã tạo và achievements unlocked
  */
-async function createPlayHistoryAndUpdateLeaderboard(userId, gameId, score, duration) {
-  const [history] = await db("play_history")
+async function createPlayHistoryAndUpdateLeaderboard(userId, gameId, score, duration, gameData = {}) {
+  const [history] = await db('play_history')
     .insert({
       user_id: userId,
       game_id: gameId,
       score: score,
-      duration: duration,
+      duration: duration
     })
-    .returning("*");
+    .returning('*');
 
-  const leaderboard = await db("leaderboards")
+  const leaderboard = await db('leaderboards')
     .where({
       user_id: userId,
-      game_id: gameId,
+      game_id: gameId
     })
     .first();
 
   if (!leaderboard || score > leaderboard.high_score) {
     if (leaderboard) {
-      await db("leaderboards").where("id", leaderboard.id).update({
-        high_score: score,
-        achieved_at: db.fn.now(),
-      });
+      await db('leaderboards')
+        .where('id', leaderboard.id)
+        .update({
+          high_score: score,
+          achieved_at: db.fn.now()
+        });
     } else {
-      await db("leaderboards").insert({
+      await db('leaderboards').insert({
         user_id: userId,
         game_id: gameId,
-        high_score: score,
+        high_score: score
       });
     }
   }
 
-  await db("game_sessions")
+  await db('game_sessions')
     .where({
       user_id: userId,
-      game_id: gameId,
+      game_id: gameId
     })
     .delete();
 
-  await achievementModel.checkAndUpdateAchievement(userId);
+  // Check and award achievements
+  const game = await getGameById(gameId);
+  if (game) {
+    const AchievementModel = require('./achievementModel');
+    const unlockedAchievements = await AchievementModel.checkAndAwardAchievements(
+      userId,
+      game.slug,
+      { score, duration, ...gameData }
+    );
 
-  return history;
+    return { history, achievements: unlockedAchievements };
+  }
+
+  return { history, achievements: [] };
 }
 
 module.exports = {

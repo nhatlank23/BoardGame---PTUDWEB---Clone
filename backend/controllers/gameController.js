@@ -75,7 +75,7 @@ exports.getGameBySlug = async (req, res) => {
  */
 exports.saveGameSession = async (req, res) => {
   try {
-    const userId = req.user.id; 
+    const userId = req.user.id;
     const { game_id, matrix_state, current_score, elapsed_time } = req.body;
 
     if (!game_id || !matrix_state) {
@@ -200,7 +200,7 @@ exports.updateGame = async (req, res) => {
 exports.createPlayHistory = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { game_id, score, duration } = req.body;
+    const { game_id, score, duration, gameData } = req.body;
 
     if (!game_id || score === undefined || !duration) {
       return res.status(400).json({
@@ -217,12 +217,21 @@ exports.createPlayHistory = async (req, res) => {
       });
     }
 
-    const history = await gameModel.createPlayHistoryAndUpdateLeaderboard(userId, game_id, score, duration);
+    const result = await gameModel.createPlayHistoryAndUpdateLeaderboard(
+      userId,
+      game_id,
+      score,
+      duration,
+      gameData || {}
+    );
 
     res.status(201).json({
       status: 'success',
       message: 'Đã lưu lịch sử chơi',
-      data: history
+      data: {
+        history: result.history,
+        achievements: result.achievements || []
+      }
     });
   } catch (error) {
     console.error('Error creating play history:', error);

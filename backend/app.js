@@ -171,6 +171,7 @@ const gameRoutes = require("./routes/gameRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const leaderboardRoutes = require("./routes/leaderboardRoute");
 const reviewRoutes = require("./routes/reviewRoutes");
+const achievementRoutes = require("./routes/achievementRoutes");
 
 // Mount routes directly
 app.use("/api/auth", authRoutes);
@@ -178,6 +179,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/leaderboards", leaderboardRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/achievements", achievementRoutes);
 app.use("/api", gameRoutes);
 
 app.use((req, res) => {

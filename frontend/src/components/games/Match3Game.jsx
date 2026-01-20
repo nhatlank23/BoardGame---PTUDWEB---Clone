@@ -41,7 +41,7 @@ const COLOR_CLASSES = {
   yellow: "bg-amber-400 shadow-amber-400/50",
   purple: "bg-violet-500 shadow-violet-500/50",
 };
-const DEFAULT_TARGET_SCORE = 2000;
+const DEFAULT_TARGET_SCORE = 2500;
 const AI_MOVE_INTERVAL = 10000;
 
 // Game instructions

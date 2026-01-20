@@ -45,6 +45,7 @@ const ProfilePage = () => {
       fetchUserData();
       fetchStats();
       fetchHistory();
+      fetchAchievements();
     }
   }, [userId, currentUser]);
 
@@ -142,19 +143,19 @@ const ProfilePage = () => {
     }
   };
 
-  const fetchAchievement = async () => {
+  const fetchAchievements = async () => {
     try {
-      setLoading(true);
-      const response = await profileService.getAchievement();
-      setAchievements(response.data);
+      console.log("Fetching achievements...");
+      const achievementService = (await import("@/services/achievementService")).default;
+      const response = userId
+        ? await achievementService.getUserAchievements(userId)
+        : await achievementService.getUserAchievements();
+
+      console.log("Achievements response:", response);
+      setAchievements(response.data || []);
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Lỗi",
-        description: "Không thể tải thông tin thành tựu",
-      });
-    } finally {
-      setLoading(false);
+      console.error("Error fetching achievements:", error);
+      // Don't show error toast for achievements as it's not critical
     }
   };
 
@@ -347,37 +348,74 @@ const ProfilePage = () => {
           </div>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <p>Thành tựu</p>
+        {/* Achievements Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-amber-600">
+              🏆 Thành tựu
+            </span>
+            {achievements.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {achievements.length}
+              </Badge>
+            )}
+          </h2>
 
           {loading ? (
-            <div className="text-center py-8">Đang tải...</div>
-          ) : (
-            <>
-              {achievements.length > 0 && !loading ? (
-                <>
-                  {achievements.map((achievement, i) => (
-                    <div
-                      key={i}
-                      className={`flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-md ${
-                        false ? "bg-primary/5 border-primary" : "hover:bg-accent"
-                      }`}
-                    >
-                      <Avatar>
-                        <AvatarImage src={achievement.icon_url || "/placeholder.svg"} />
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="font-semibold">{achievement.name}</div>
-                        <div className="text-sm text-muted-foreground">{formatTime(achievement.earned_at) ?? 0}</div>
+            <div className="text-center py-12">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
+              <p className="mt-2 text-muted-foreground">Đang tải...</p>
+            </div>
+          ) : achievements.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {achievements.map((achievement, i) => (
+                <Card
+                  key={i}
+                  className="group relative overflow-hidden border-2 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-yellow-500/50"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-amber-500/5 to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                  <div className="relative p-4">
+                    <div className="flex items-start gap-4">
+                      <div className="relative flex-shrink-0">
+                        <div className="absolute inset-0 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-full blur-md opacity-30 group-hover:opacity-50 transition-opacity"></div>
+                        <Avatar className="h-16 w-16 border-2 border-yellow-500/30 relative">
+                          <AvatarImage src={achievement.icon_url} className="object-contain p-2" />
+                          <AvatarFallback className="text-2xl">🏅</AvatarFallback>
+                        </Avatar>
                       </div>
-                      <div>{achievement.description}</div>
+
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-lg mb-1 group-hover:text-yellow-600 transition-colors truncate">
+                          {achievement.name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                          {achievement.description}
+                        </p>
+                        {achievement.earned_at && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                            <span>Đạt được: {formatTime(achievement.earned_at)}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  ))}
-                </>
-              ) : (
-                <div className="text-center py-3 text-muted-foreground">Chưa có thành tựu</div>
-              )}
-            </>
+
+                    <div className="absolute top-2 right-2 text-yellow-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                      ✨
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="p-12 text-center border-dashed">
+              <div className="text-6xl mb-4 opacity-20">🏆</div>
+              <p className="text-lg text-muted-foreground mb-2">Chưa có thành tựu</p>
+              <p className="text-sm text-muted-foreground">
+                Hãy chơi game và hoàn thành thử thách để mở khóa thành tựu!
+              </p>
+            </Card>
           )}
         </div>
 
