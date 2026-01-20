@@ -47,7 +47,7 @@ const PATTERNS = [
   ],
 ];
 
-const GRID_SIZE = 10;
+// Grid size is now dynamic from config
 
 const GAME_INSTRUCTIONS = [
   {
@@ -170,8 +170,9 @@ export default function DrawingGame() {
   }, [toast]);
 
   const initGame = useCallback(() => {
+    const gridSize = (config.rows || 10) * (config.cols || 10);
     const randomPattern = PATTERNS[Math.floor(Math.random() * PATTERNS.length)];
-    const validPattern = randomPattern.filter((i) => i >= 0 && i < 100);
+    const validPattern = randomPattern.filter((i) => i >= 0 && i < gridSize);
     setPattern(validPattern);
     setFilledCells(new Set());
     setWrongCells(new Set());
@@ -711,9 +712,9 @@ export default function DrawingGame() {
           <div className="absolute -inset-4 bg-emerald-500/10 rounded-3xl blur-2xl" />
           <div
             className="relative grid gap-1 bg-card p-3 rounded-2xl shadow-2xl border-4 border-border"
-            style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`, width: "min(80vw, 50vh, 600px)", aspectRatio: "1/1" }}
+            style={{ gridTemplateColumns: `repeat(${config.cols || 10}, 1fr)`, width: "min(80vw, 50vh, 600px)", aspectRatio: "1/1" }}
           >
-            {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => {
+            {Array.from({ length: (config.rows || 10) * (config.cols || 10) }).map((_, i) => {
               const isPattern = pattern.includes(i);
               const isFilled = filledCells.has(i);
               const isWrong = wrongCells.has(i);

@@ -33,7 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const ICONS = ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼"];
+const ALL_ICONS = ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐙", "🦄", "🦋", "🌸"];
 
 const GAME_INSTRUCTIONS = [
   {
@@ -145,7 +145,7 @@ export default function MemoryGame() {
         }
       } catch (error) {
         toast({ title: "Lỗi", description: "Không tải được cấu hình game", variant: "destructive" });
-        setConfig({ times: [5, 10, 20] });
+        setConfig({ times: [5, 10, 20], rows: 4, cols: 4 });
       } finally {
         setLoading(false);
       }
@@ -154,7 +154,12 @@ export default function MemoryGame() {
   }, [toast]);
 
   const initGame = useCallback(() => {
-    const pairs = [...ICONS, ...ICONS];
+    const rows = config?.rows || 4;
+    const cols = config?.cols || 4;
+    const totalCells = rows * cols;
+    const pairsCount = Math.floor(totalCells / 2);
+    const selectedIcons = ALL_ICONS.slice(0, pairsCount);
+    const pairs = [...selectedIcons, ...selectedIcons];
     for (let i = pairs.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
@@ -170,7 +175,7 @@ export default function MemoryGame() {
     setComboCount(0);
     setHintIndices([]);
     setPlayerScore(0);
-  }, []);
+  }, [config]);
 
   const calculateFinalScore = useCallback(() => {
     let score = 0;
@@ -810,10 +815,14 @@ export default function MemoryGame() {
           <div className="absolute -inset-4 bg-purple-500/10 rounded-3xl blur-2xl" />
           <div
             className={cn(
-              "relative grid grid-cols-4 gap-3 bg-card p-4 rounded-2xl shadow-2xl border-4 border-border transition-all",
+              "relative grid gap-3 bg-card p-4 rounded-2xl shadow-2xl border-4 border-border transition-all",
               !isPlayerTurn && "opacity-80"
             )}
-            style={{ width: "min(80vw, 50vh, 600px)", aspectRatio: "1/1" }}
+            style={{
+              gridTemplateColumns: `repeat(${config?.cols || 4}, 1fr)`,
+              width: "min(80vw, 50vh, 600px)",
+              aspectRatio: `${config?.cols || 4}/${config?.rows || 4}`
+            }}
           >
             {cards.map((icon, i) => {
               const isFlipped = flippedIndices.includes(i);
