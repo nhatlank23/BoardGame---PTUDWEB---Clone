@@ -4,8 +4,11 @@ const router = express.Router();
 const AdminController = require("../controllers/adminController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
-// Apply auth middleware to all routes
+const roleMiddleware = require("../middlewares/roleMiddleware");
+
+// Apply auth middleware and role check to all routes
 router.use(authMiddleware);
+router.use(roleMiddleware(["admin"]));
 
 /**
  * @openapi
