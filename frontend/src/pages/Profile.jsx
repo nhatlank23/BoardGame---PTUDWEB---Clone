@@ -242,8 +242,6 @@ const ProfilePage = () => {
     );
   }
 
-  console.log(achievements);
-
   return (
     <div className="max-w-5xl py-8 pl-32">
       <Card className="p-6">
@@ -307,24 +305,35 @@ const ProfilePage = () => {
         <div className="flex flex-col gap-2">
           <p>Thành tựu</p>
 
-          {achievements.map((achievement, i) => (
-            <div
-              key={i}
-              className={`flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-md ${
-                false ? "bg-primary/5 border-primary" : "hover:bg-accent"
-              }`}
-            >
-              <Avatar>
-                {/* Todo: đợi update icon url */}
-                <AvatarImage src={achievement.icon_url || "/placeholder.svg"} />
-              </Avatar>
-              <div className="flex-1">
-                <div className="font-semibold">{achievement.name}</div>
-                <div className="text-sm text-muted-foreground">{formatTime(achievement.earned_at) ?? 0}</div>
-              </div>
-              <div>{achievement.description}</div>
-            </div>
-          ))}
+          {loading ? (
+            <div className="text-center py-8">Đang tải...</div>
+          ) : (
+            <>
+              {achievements.length > 0 && !loading ? (
+                <>
+                  {achievements.map((achievement, i) => (
+                    <div
+                      key={i}
+                      className={`flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-md ${
+                        false ? "bg-primary/5 border-primary" : "hover:bg-accent"
+                      }`}
+                    >
+                      <Avatar>
+                        <AvatarImage src={achievement.icon_url || "/placeholder.svg"} />
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="font-semibold">{achievement.name}</div>
+                        <div className="text-sm text-muted-foreground">{formatTime(achievement.earned_at) ?? 0}</div>
+                      </div>
+                      <div>{achievement.description}</div>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <div className="text-center py-3 text-muted-foreground">Chưa có thành tựu</div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Tabs cho Thống kê và Lịch sử */}
