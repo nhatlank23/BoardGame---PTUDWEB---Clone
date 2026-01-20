@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Header } from "@/components/header";
-import { Sidebar } from "@/components/sidebar";
 import {
   Card,
   CardContent,
@@ -88,11 +86,7 @@ export default function Games() {
   };
 
   return (
-    <div className="min-h-screen">
-      <Header />
-      <Sidebar isAdmin />
-
-      <main className="ml-64 mt-16 p-8">
+      <main className="p-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <h1 className="text-4xl font-bold mb-2">Quản lý Game</h1>
@@ -180,6 +174,5 @@ export default function Games() {
           </Card>
         </div>
       </main>
-    </div>
   );
 }

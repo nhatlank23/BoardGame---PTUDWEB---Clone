@@ -9,8 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { profileService } from "@/services/profileService";
 import { authService } from "@/services/authService";
-import { Header } from "../components/header";
-import { Sidebar } from "../components/sidebar";
 
 const ProfilePage = () => {
   const { toast } = useToast();
@@ -220,11 +218,7 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="min-h-screen">
-      <Header />
-      <Sidebar />
-      <main className="ml-64 mt-16 p-8">
-        <div className="max-w-4xl mx-auto">
+    <div className="max-w-5xl py-8 pl-32">
           <Card className="p-6">
             {/* Header với avatar và thông tin cơ bản */}
             <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8">
@@ -397,8 +391,6 @@ const ProfilePage = () => {
               </TabsContent>
             </Tabs>
           </Card>
-        </div>
-      </main>
     </div>
   );
 };

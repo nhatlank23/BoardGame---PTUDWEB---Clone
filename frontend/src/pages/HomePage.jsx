@@ -1,7 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Header } from "@/components/header";
-import { Sidebar } from "@/components/sidebar";
 import { Loader2 } from "lucide-react";
 import { GameController } from "@/components/games/GameController";
 import { gameService } from "@/services/gameService";
@@ -203,11 +201,8 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-hidden font-sans">
-      <Header />
-      <Sidebar />
-
-      <main className="ml-64 mt-16 p-8 h-[calc(100vh-64px)] flex flex-col">
+    <div className="bg-background text-foreground overflow-hidden font-sans">
+      <main className="p-8 flex flex-col">
         <div className="max-w-7xl mx-auto w-full grid lg:grid-cols-2 gap-12 items-center my-auto">
           <div className="flex flex-col items-center space-y-8">
             <div className="flex flex-col items-center">

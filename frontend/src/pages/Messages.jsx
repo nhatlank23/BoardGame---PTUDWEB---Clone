@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import { Header } from "@/components/header";
-import { Sidebar } from "@/components/sidebar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -114,13 +112,7 @@ export default function MessagesPage() {
   );
 
   return (
-    <div className="h-screen flex flex-col">
-      <Header />
-
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        
-        <main className="flex-1 ml-64 mt-16 pl-8 flex flex-col overflow-hidden">
+        <main className="flex flex-col overflow-hidden h-full px-24">
           <div className="flex-shrink-0 p-8 pb-0">
             <h1 className="text-4xl font-bold">Tin nhắn</h1>
           </div>
@@ -225,7 +217,5 @@ export default function MessagesPage() {
             </Card>
           </div>
         </main>
-      </div>
-    </div>
   );
 }
