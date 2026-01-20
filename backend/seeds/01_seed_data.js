@@ -96,11 +96,31 @@ exports.seed = async function (knex) {
   // 7. SEED ACHIEVEMENTS (5 danh hiệu)
   const achievementIds = await knex("achievements")
     .insert([
-      { name: "Newbie", description: "Chơi ván game đầu tiên", icon_url: "badge_01.png" },
-      { name: "Winner", description: "Thắng 10 ván Caro", icon_url: "badge_02.png" },
-      { name: "Snake Master", description: "Đạt 100 điểm game Snake", icon_url: "badge_03.png" },
-      { name: "Social Star", description: "Có 5 người bạn", icon_url: "badge_04.png" },
-      { name: "Pro Player", description: "Lọt top 1 bảng xếp hạng", icon_url: "badge_05.png" },
+      {
+        name: "Newbie",
+        description: "Chơi ván game đầu tiên",
+        icon_url: "https://fhzjvozcnwusnezbezkp.supabase.co/storage/v1/object/public/achievement_icon/newbie.png",
+      },
+      {
+        name: "Winner",
+        description: "Thắng 10 ván Caro",
+        icon_url: "https://fhzjvozcnwusnezbezkp.supabase.co/storage/v1/object/public/achievement_icon/success.png",
+      },
+      {
+        name: "Snake Master",
+        description: "Đạt 100 điểm game Snake",
+        icon_url: "https://fhzjvozcnwusnezbezkp.supabase.co/storage/v1/object/public/achievement_icon/snake.png",
+      },
+      {
+        name: "Social Star",
+        description: "Có 5 người bạn",
+        icon_url: "https://fhzjvozcnwusnezbezkp.supabase.co/storage/v1/object/public/achievement_icon/friendship.png",
+      },
+      {
+        name: "Pro Player",
+        description: "Lọt top 1 bảng xếp hạng",
+        icon_url: "https://fhzjvozcnwusnezbezkp.supabase.co/storage/v1/object/public/achievement_icon/number-one.png",
+      },
     ])
     .returning("id");
 
@@ -132,8 +152,8 @@ exports.seed = async function (knex) {
 
   // 10. SEED GAME LOGS (activity logs for hourly chart)
   const gameLogs = [];
-  const today = new Date('2026-01-17');
-  
+  const today = new Date("2026-01-17");
+
   // Generate logs for different hours throughout the day
   for (let hour = 0; hour < 24; hour++) {
     const logsInHour = Math.floor(Math.random() * 15) + 5; // 5-20 logs per hour
@@ -144,16 +164,16 @@ exports.seed = async function (knex) {
       const randomGameId = gameIds[Math.floor(Math.random() * gameIds.length)];
       const randomScore = Math.floor(Math.random() * 1000) + 10;
       const randomDuration = Math.floor(Math.random() * 300) + 30;
-      
+
       gameLogs.push({
         user_id: randomUserId,
         game_id: randomGameId,
         played_at: playedAt,
         score: randomScore,
-        duration: randomDuration
+        duration: randomDuration,
       });
     }
   }
-  
+
   await knex("game_logs").insert(gameLogs);
 };
