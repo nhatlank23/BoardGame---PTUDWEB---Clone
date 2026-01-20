@@ -5,12 +5,12 @@ import { Users, UserCheck, UserPlus, Gamepad2 } from "lucide-react"
 import { adminService } from "@/services/adminService"
 
 export default function Dashboard() {
-  const [stats] = useState([
-    { label: "Tổng User", value: "1,245", icon: Users },
-    { label: "Online", value: "342", icon: UserCheck },
-    { label: "User mới", value: "89", icon: UserPlus },
-    { label: "Tổng game", value: "6", icon: Gamepad2 },
-  ])
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    onlineUsers: 0,
+    newUsers: 0,
+    totalGames: 0,
+  })
 
   const [gamesPlayed, setGamesPlayed] = useState([])
   const [hourlyActivity, setHourlyActivity] = useState([])
@@ -28,10 +28,24 @@ export default function Dashboard() {
   const loadDashboardData = async () => {
     try {
       setLoading(true)
-      const gamesResponse = await adminService.getGamesPlayed()
+      
+      const [statsResponse, gamesResponse] = await Promise.all([
+        adminService.getStatsSummary(),
+        adminService.getGamesPlayed(),
+      ])
+
+      console.log("Stats response:", statsResponse)
+      console.log("Games played response:", gamesResponse)
+
+      if (statsResponse?.data) {
+        setStats(statsResponse.data)
+      }
+
       if (gamesResponse?.data) {
+        console.log("Setting gamesPlayed:", gamesResponse.data)
         setGamesPlayed(gamesResponse.data)
       }
+
       await loadHourlyActivity(null)
     } catch (err) {
       console.error("Error loading dashboard data:", err)
@@ -43,7 +57,9 @@ export default function Dashboard() {
   const loadHourlyActivity = async (gameId) => {
     try {
       const response = await adminService.getHourlyActivity(gameId)
+      console.log("Hourly activity response:", response)
       if (response?.data) {
+        console.log("Setting hourlyActivity:", response.data)
         setHourlyActivity(response.data)
       }
     } catch (err) {
@@ -66,20 +82,45 @@ export default function Dashboard() {
 
           {/* Stats Grid */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-            {stats.map((stat) => {
-              const Icon = stat.icon
-              return (
-                <Card key={stat.label}>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
-                    <Icon className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold">{stat.value}</div>
-                  </CardContent>
-                </Card>
-              )
-            })}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Tổng User</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{loading ? "..." : stats.totalUsers}</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Online</CardTitle>
+                <UserCheck className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{loading ? "..." : stats.onlineUsers}</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">User mới (7 ngày)</CardTitle>
+                <UserPlus className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{loading ? "..." : stats.newUsers}</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Tổng game</CardTitle>
+                <Gamepad2 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{loading ? "..." : stats.totalGames}</div>
+              </CardContent>
+            </Card>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-6">
@@ -92,6 +133,8 @@ export default function Dashboard() {
               <CardContent>
                 {loading ? (
                   <div className="text-center text-muted-foreground py-8">Đang tải...</div>
+                ) : gamesPlayed.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">Chưa có dữ liệu</div>
                 ) : (
                   <div className="space-y-4">
                     {gamesPlayed.map((game) => {
@@ -141,7 +184,10 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="h-[240px] flex items-end justify-between gap-1">
+                {hourlyActivity.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">Chưa có dữ liệu</div>
+                ) : (
+                  <div className="h-[240px] flex items-end justify-between gap-1">
                   {hourlyActivity.map((data) => {
                     const maxCount = getMaxCount()
                     const height = maxCount > 0 ? (data.count / maxCount) * 100 : 0
@@ -160,6 +206,7 @@ export default function Dashboard() {
                     )
                   })}
                 </div>
+                )}
               </CardContent>
             </Card>
           </div>
