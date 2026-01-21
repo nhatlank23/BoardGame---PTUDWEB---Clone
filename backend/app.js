@@ -1,5 +1,9 @@
 require("dotenv").config();
 const express = require("express");
+const https = require("https");
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
 const cors = require("cors");
 const swaggerUi = require("swagger-ui-express");
 const swaggerJsDoc = require("swagger-jsdoc");
@@ -33,7 +37,10 @@ const swaggerOptions = {
       version: "1.0.0",
       description: "Tài liệu API đầy đủ cho hệ thống game online",
     },
-    servers: [{ url: `http://localhost:${process.env.PORT || 3000}` }],
+    servers: [
+      { url: `http://localhost:${process.env.PORT || 3000}`, description: 'HTTP Server' },
+      { url: `https://localhost:${process.env.HTTPS_PORT || 3443}`, description: 'HTTPS Server (Secure)' }
+    ],
     tags: [
       { name: "Auth", description: "API xác thực và quản lý phiên đăng nhập" },
       { name: "Users", description: "API quản lý thông tin người dùng" },
@@ -199,9 +206,84 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
+const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+const certsPath = path.join(__dirname, 'certs');
+const keyPath = path.join(certsPath, 'key.pem');
+const certPath = path.join(certsPath, 'cert.pem');
+
+function generateSSLCertificate() {
+  try {
+    const forge = require('node-forge');
+    const pki = forge.pki;
+
+    if (!fs.existsSync(certsPath)) {
+      fs.mkdirSync(certsPath, { recursive: true });
+    }
+
+    const keys = pki.rsa.generateKeyPair(2048);
+
+    const cert = pki.createCertificate();
+    cert.publicKey = keys.publicKey;
+    cert.serialNumber = '01';
+    cert.validity.notBefore = new Date();
+    cert.validity.notAfter = new Date();
+    cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1);
+
+    const attrs = [
+      { name: 'commonName', value: 'localhost' },
+      { name: 'countryName', value: 'VN' },
+      { shortName: 'ST', value: 'Ho Chi Minh' },
+      { name: 'localityName', value: 'Ho Chi Minh' },
+      { name: 'organizationName', value: 'Do An Web' },
+      { shortName: 'OU', value: 'Development' }
+    ];
+
+    cert.setSubject(attrs);
+    cert.setIssuer(attrs);
+    cert.setExtensions([
+      { name: 'basicConstraints', cA: true },
+      { name: 'keyUsage', keyCertSign: true, digitalSignature: true, keyEncipherment: true },
+      { name: 'extKeyUsage', serverAuth: true, clientAuth: true },
+      { name: 'subjectAltName', altNames: [{ type: 2, value: 'localhost' }, { type: 7, ip: '127.0.0.1' }] }
+    ]);
+
+    cert.sign(keys.privateKey, forge.md.sha256.create());
+
+    fs.writeFileSync(keyPath, pki.privateKeyToPem(keys.privateKey));
+    fs.writeFileSync(certPath, pki.certificateToPem(cert));
+
+    return true;
+  } catch (error) {
+    console.error('Không thể tạo SSL Certificate:', error.message);
+    return false;
+  }
+}
+
+http.createServer(app).listen(PORT, () => {
+  console.log(`HTTP Server running on http://localhost:${PORT}`);
 });
+
+let certsExist = fs.existsSync(keyPath) && fs.existsSync(certPath);
+if (!certsExist) {
+  certsExist = generateSSLCertificate();
+}
+
+if (certsExist) {
+  try {
+    const httpsOptions = {
+      key: fs.readFileSync(keyPath),
+      cert: fs.readFileSync(certPath)
+    };
+
+    https.createServer(httpsOptions, app).listen(HTTPS_PORT, () => {
+      console.log(`HTTPS Server running on https://localhost:${HTTPS_PORT}`);
+    });
+  } catch (error) {
+    console.error('Lỗi khi khởi động HTTPS Server:', error.message);
+  }
+} else {
+  console.log('HTTPS Server không khởi động được. Chỉ chạy HTTP.');
+}
 
 module.exports = app;
