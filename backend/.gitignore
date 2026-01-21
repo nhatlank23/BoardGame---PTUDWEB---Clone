@@ -1,1 +1,14 @@
-node_modules
+node_modules/
+.prettierrc
+
+# Environment variables (chứa thông tin nhạy cảm)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+
+test.js

@@ -1,49 +1,289 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const db = require('./configs/db');
-
+require("dotenv").config();
+const express = require("express");
+const https = require("https");
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+const cors = require("cors");
+const swaggerUi = require("swagger-ui-express");
+const swaggerJsDoc = require("swagger-jsdoc");
 const app = express();
-
+const auth = require("basic-auth");
+const validateApiKey = require("./middlewares/apiKeyMiddleware"); // sử dụng sau
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    credentials: true,
+  })
+);
+// api-docs - xem ở trang: http://localhost:3000/api-docs
+const swaggerAuth = (req, res, next) => {
+  const user = auth(req);
+  if (user && user.name === "admin" && user.pass === "123456") {
+    return next();
+  }
+  res.set("WWW-Authenticate", 'Basic realm="API Documentation"');
+  return res.status(401).send("Vui lòng đăng nhập để xem Docs");
+};
 
-app.get('/', (req, res) => {
+const swaggerOptions = {
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "Đồ án web - API Documentation",
+      version: "1.0.0",
+      description: "Tài liệu API đầy đủ cho hệ thống game online",
+    },
+    servers: [
+      { url: `http://localhost:${process.env.PORT || 3000}`, description: 'HTTP Server' },
+      { url: `https://localhost:${process.env.HTTPS_PORT || 3443}`, description: 'HTTPS Server (Secure)' }
+    ],
+    tags: [
+      { name: "Auth", description: "API xác thực và quản lý phiên đăng nhập" },
+      { name: "Users", description: "API quản lý thông tin người dùng" },
+      { name: "Users - Friends", description: "API quản lý bạn bè" },
+      { name: "Users - Messages", description: "API tin nhắn" },
+      {
+        name: "Users - Stats",
+        description: "API thống kê và lịch sử người dùng",
+      },
+      { name: "Games", description: "API quản lý game" },
+      { name: "Game Sessions", description: "API quản lý phiên chơi game" },
+      { name: "Admin", description: "API quản trị hệ thống" },
+      { name: "Admin - Stats", description: "API thống kê cho admin" },
+      { name: "Leaderboard", description: "API bảng xếp hạng" },
+      { name: "Reviews", description: "API đánh giá và bình luận game" },
+    ],
+    components: {
+      securitySchemes: {
+        ApiKeyAuth: {
+          type: "apiKey",
+          in: "header",
+          name: "x-api-key",
+          description:
+            "Nhập mã: api_9f3c2b7a8d4e6a1f5c0e9b2d7a4c8e6f1b0d9a3e5c7f2a8b4d6c0e1",
+        },
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+          description: "Nhập JWT token nhận được từ endpoint /api/auth/login",
+        },
+      },
+      schemas: {
+        User: {
+          type: "object",
+          properties: {
+            id: { type: "integer" },
+            username: { type: "string" },
+            email: { type: "string" },
+            role: { type: "string", enum: ["player", "admin"] },
+            avatar_url: { type: "string", nullable: true },
+            is_banned: { type: "boolean" },
+            created_at: { type: "string", format: "date-time" },
+            updated_at: { type: "string", format: "date-time" },
+          },
+        },
+        Game: {
+          type: "object",
+          properties: {
+            id: { type: "integer" },
+            slug: { type: "string" },
+            name: { type: "string" },
+            description: { type: "string" },
+            config: { type: "object" },
+            is_active: { type: "boolean" },
+            created_at: { type: "string", format: "date-time" },
+          },
+        },
+        GameSession: {
+          type: "object",
+          properties: {
+            id: { type: "integer" },
+            user_id: { type: "integer" },
+            game_id: { type: "integer" },
+            state: { type: "object" },
+            score: { type: "number" },
+            duration: { type: "integer" },
+            created_at: { type: "string", format: "date-time" },
+            updated_at: { type: "string", format: "date-time" },
+          },
+        },
+        Error: {
+          type: "object",
+          properties: {
+            status: { type: "string", example: "error" },
+            message: { type: "string" },
+          },
+        },
+      },
+      responses: {
+        UnauthorizedError: {
+          description: "Token không hợp lệ hoặc đã hết hạn",
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/Error",
+              },
+            },
+          },
+        },
+        ForbiddenError: {
+          description: "Không có quyền truy cập",
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/Error",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  apis: ["./routes/*.js"],
+};
+const swaggerDocs = swaggerJsDoc(swaggerOptions);
+app.use(
+  "/api-docs",
+  swaggerAuth,
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocs)
+);
+
+app.get("/", (req, res) => {
   res.json({
-    status: 'success',
-    message: 'Backend API is running',
-    timestamp: new Date().toISOString()
+    status: "success",
+    message: "Backend API is running",
+    timestamp: new Date().toISOString(),
   });
 });
 
-const routes = require('./routes');
-app.use('/api', routes);
+// Health check
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "success",
+    message: "API is running",
+    timestamp: new Date().toISOString(),
+  });
+});
 
+// Import routes
+const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
+const gameRoutes = require("./routes/gameRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const leaderboardRoutes = require("./routes/leaderboardRoute");
+const reviewRoutes = require("./routes/reviewRoutes");
+const achievementRoutes = require("./routes/achievementRoutes");
+
+// Mount routes directly
+app.use(validateApiKey);
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/leaderboards", leaderboardRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/achievements", achievementRoutes);
+app.use("/api", gameRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
-    status: 'error',
-    message: 'Route not found'
+    status: "error",
+    message: "Route not found",
   });
 });
 
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  console.error("Error:", err);
   res.status(err.status || 500).json({
-    status: 'error',
-    message: err.message || 'Internal Server Error'
+    status: "error",
+    message: err.message || "Internal Server Error",
   });
 });
 
 const PORT = process.env.PORT || 3000;
+const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+const certsPath = path.join(__dirname, 'certs');
+const keyPath = path.join(certsPath, 'key.pem');
+const certPath = path.join(certsPath, 'cert.pem');
+
+function generateSSLCertificate() {
+  try {
+    const forge = require('node-forge');
+    const pki = forge.pki;
+
+    if (!fs.existsSync(certsPath)) {
+      fs.mkdirSync(certsPath, { recursive: true });
+    }
+
+    const keys = pki.rsa.generateKeyPair(2048);
+
+    const cert = pki.createCertificate();
+    cert.publicKey = keys.publicKey;
+    cert.serialNumber = '01';
+    cert.validity.notBefore = new Date();
+    cert.validity.notAfter = new Date();
+    cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1);
+
+    const attrs = [
+      { name: 'commonName', value: 'localhost' },
+      { name: 'countryName', value: 'VN' },
+      { shortName: 'ST', value: 'Ho Chi Minh' },
+      { name: 'localityName', value: 'Ho Chi Minh' },
+      { name: 'organizationName', value: 'Do An Web' },
+      { shortName: 'OU', value: 'Development' }
+    ];
+
+    cert.setSubject(attrs);
+    cert.setIssuer(attrs);
+    cert.setExtensions([
+      { name: 'basicConstraints', cA: true },
+      { name: 'keyUsage', keyCertSign: true, digitalSignature: true, keyEncipherment: true },
+      { name: 'extKeyUsage', serverAuth: true, clientAuth: true },
+      { name: 'subjectAltName', altNames: [{ type: 2, value: 'localhost' }, { type: 7, ip: '127.0.0.1' }] }
+    ]);
+
+    cert.sign(keys.privateKey, forge.md.sha256.create());
+
+    fs.writeFileSync(keyPath, pki.privateKeyToPem(keys.privateKey));
+    fs.writeFileSync(certPath, pki.certificateToPem(cert));
+
+    return true;
+  } catch (error) {
+    console.error('Không thể tạo SSL Certificate:', error.message);
+    return false;
+  }
+}
+
+http.createServer(app).listen(PORT, () => {
+  console.log(`HTTP Server running on http://localhost:${PORT}`);
 });
+
+let certsExist = fs.existsSync(keyPath) && fs.existsSync(certPath);
+if (!certsExist) {
+  certsExist = generateSSLCertificate();
+}
+
+if (certsExist) {
+  try {
+    const httpsOptions = {
+      key: fs.readFileSync(keyPath),
+      cert: fs.readFileSync(certPath)
+    };
+
+    https.createServer(httpsOptions, app).listen(HTTPS_PORT, () => {
+      console.log(`HTTPS Server running on https://localhost:${HTTPS_PORT}`);
+    });
+  } catch (error) {
+    console.error('Lỗi khi khởi động HTTPS Server:', error.message);
+  }
+} else {
+  console.log('HTTPS Server không khởi động được. Chỉ chạy HTTP.');
+}
 
 module.exports = app;
