@@ -493,6 +493,58 @@ export default function SnakeGame({ setControllerConfig }) {
       // In-game controls
       if (!gameOver) {
         switch (e.key) {
+          case "ArrowLeft":
+            e.preventDefault();
+            if (hintSteps === 0) {
+              // Đi sang trái
+              const currentDir = directionRef.current;
+              const newDir = { x: -1, y: 0 };
+              // Ngăn đi ngược lại
+              if (!(newDir.x === -currentDir.x && newDir.y === -currentDir.y)) {
+                directionRef.current = newDir;
+                setDirection(newDir);
+              }
+            }
+            break;
+          case "ArrowRight":
+            e.preventDefault();
+            if (hintSteps === 0) {
+              // Đi sang phải
+              const currentDir = directionRef.current;
+              const newDir = { x: 1, y: 0 };
+              // Ngăn đi ngược lại
+              if (!(newDir.x === -currentDir.x && newDir.y === -currentDir.y)) {
+                directionRef.current = newDir;
+                setDirection(newDir);
+              }
+            }
+            break;
+          case "ArrowUp":
+            e.preventDefault();
+            if (hintSteps === 0) {
+              // Đi lên
+              const currentDir = directionRef.current;
+              const newDir = { x: 0, y: -1 };
+              // Ngăn đi ngược lại
+              if (!(newDir.x === -currentDir.x && newDir.y === -currentDir.y)) {
+                directionRef.current = newDir;
+                setDirection(newDir);
+              }
+            }
+            break;
+          case "ArrowDown":
+            e.preventDefault();
+            if (hintSteps === 0) {
+              // Đi xuống
+              const currentDir = directionRef.current;
+              const newDir = { x: 0, y: 1 };
+              // Ngăn đi ngược lại
+              if (!(newDir.x === -currentDir.x && newDir.y === -currentDir.y)) {
+                directionRef.current = newDir;
+                setDirection(newDir);
+              }
+            }
+            break;
           case "h":
           case "H":
             e.preventDefault();
