@@ -82,4 +82,57 @@ module.exports = {
       return res.status(500).json({ status: "error", message: "Internal Server Error" });
     }
   },
+
+  // GET /api/leaderboards/:game_id/my-rank - Get current user's rank in a specific game
+  getMyRankByGameId: async (req, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
+      }
+
+      const gameId = parseInt(req.params.game_id, 10);
+      if (!gameId || isNaN(gameId)) {
+        return res.status(400).json({ status: "error", message: "Game ID is required and must be a number" });
+      }
+
+      const rankInfo = await leaderboardsModel.getUserRankByGameId(userId, gameId);
+
+      if (!rankInfo) {
+        return res.json({
+          status: "success",
+          data: null,
+          message: "Bạn chưa chơi game này"
+        });
+      }
+
+      return res.json({
+        status: "success",
+        data: rankInfo
+      });
+    } catch (err) {
+      console.error("getMyRankByGameId error:", err);
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
+    }
+  },
+
+  // GET /api/leaderboards/my-ranks - Get current user's ranks in all games
+  getMyRanksAllGames: async (req, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ status: "error", message: "Unauthorized" });
+      }
+
+      const ranks = await leaderboardsModel.getUserRanksAllGames(userId);
+
+      return res.json({
+        status: "success",
+        data: ranks
+      });
+    } catch (err) {
+      console.error("getMyRanksAllGames error:", err);
+      return res.status(500).json({ status: "error", message: "Internal Server Error" });
+    }
+  },
 };

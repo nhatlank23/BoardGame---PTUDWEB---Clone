@@ -29,7 +29,7 @@ class LeaderboardsModel {
           "ROUND(SUM(CASE WHEN play_history.score = 1 THEN 1 ELSE 0 END)::NUMERIC / COUNT(*) * 100, 1) as win_rate"
         )
       )
-      .groupBy("users.id", "users.username")
+      .groupBy("users.id", "users.username", "users.avatar_url")
       .orderBy("avg_score", "desc")
       .orderBy("win_rate", "desc")
       .limit(pageSize)
@@ -75,7 +75,6 @@ class LeaderboardsModel {
           "play_history.user_id"
         );
       })
-      // .where("friendships.status", "accepted")
       .where(function () {
         this.where("friendships.requester_id", userId).orWhere(
           "friendships.addressee_id",
@@ -105,7 +104,73 @@ class LeaderboardsModel {
 
     return leaderboards;
   }
+
+  // Get user's rank in a specific game
+  static async getUserRankByGameId(userId, gameId) {
+    const userStats = await db("play_history")
+      .where("play_history.game_id", gameId)
+      .andWhere("play_history.user_id", userId)
+      .select(
+        db.raw("AVG(play_history.score)::INTEGER as avg_score"),
+        db.raw("MAX(play_history.score) as record"),
+        db.raw("COUNT(*) as played"),
+        db.raw("SUM(CASE WHEN play_history.score = 1 THEN 1 ELSE 0 END) as wins"),
+        db.raw("ROUND(SUM(CASE WHEN play_history.score = 1 THEN 1 ELSE 0 END)::NUMERIC / NULLIF(COUNT(*), 0) * 100, 1) as win_rate")
+      )
+      .first();
+
+    if (!userStats || !userStats.played || userStats.played === "0") {
+      return null;
+    }
+
+    // Count how many users have higher avg_score than this user
+    const rankResult = await db("play_history")
+      .where("play_history.game_id", gameId)
+      .select(
+        "play_history.user_id",
+        db.raw("AVG(play_history.score)::INTEGER as avg_score")
+      )
+      .groupBy("play_history.user_id")
+      .havingRaw("AVG(play_history.score)::INTEGER > ?", [userStats.avg_score || 0]);
+
+    const rank = rankResult.length + 1;
+    const totalPlayers = await this.countPlayersByGameId(gameId);
+
+    return {
+      rank,
+      totalPlayers,
+      avg_score: userStats.avg_score,
+      record: userStats.record,
+      played: parseInt(userStats.played),
+      wins: parseInt(userStats.wins || 0),
+      win_rate: parseFloat(userStats.win_rate || 0)
+    };
+  }
+
+  // Get user's ranks in all games they have played
+  static async getUserRanksAllGames(userId) {
+    const userGames = await db("play_history")
+      .where("play_history.user_id", userId)
+      .join("games", "games.id", "play_history.game_id")
+      .select("games.id as game_id", "games.name as game_name", "games.slug")
+      .groupBy("games.id", "games.name", "games.slug");
+
+    const ranks = [];
+
+    for (const game of userGames) {
+      const rankInfo = await this.getUserRankByGameId(userId, game.game_id);
+      if (rankInfo) {
+        ranks.push({
+          game_id: game.game_id,
+          game_name: game.game_name,
+          game_slug: game.slug,
+          ...rankInfo
+        });
+      }
+    }
+
+    return ranks;
+  }
 }
 
 module.exports = LeaderboardsModel;
-
