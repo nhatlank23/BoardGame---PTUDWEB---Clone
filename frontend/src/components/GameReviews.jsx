@@ -220,7 +220,21 @@ export function GameReviews({ gameId, currentUserId }) {
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Nhận xét (không bắt buộc)</label>
-                <Textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Chia sẻ trải nghiệm của bạn..." rows={4} />
+                <Textarea 
+                  value={comment} 
+                  onChange={(e) => setComment(e.target.value)} 
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleSubmitReview();
+                    }
+                    // Ngăn event lan ra game controller
+                    e.stopPropagation();
+                  }}
+                  placeholder="Chia sẻ trải nghiệm của bạn... (Enter để gửi, Shift+Enter để xuống dòng)" 
+                  rows={4} 
+                />
               </div>
 
               <div className="flex gap-2">

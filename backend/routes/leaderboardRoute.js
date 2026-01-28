@@ -56,6 +56,21 @@ router.use(authMiddleware);
  *       404:
  *         description: Game không tồn tại
  */
+
+/**
+ * @openapi
+ * /api/leaderboards/my-ranks:
+ *   get:
+ *     tags: [Leaderboard]
+ *     summary: Lấy xếp hạng của tôi trong tất cả games
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Xếp hạng trong tất cả games
+ */
+router.get("/my-ranks", leaderboardController.getMyRanksAllGames);
+
 router.get("/:game_id", leaderboardController.getTopGamersByGameId);
 
 /**
@@ -109,5 +124,25 @@ router.get("/:game_id", leaderboardController.getTopGamersByGameId);
  *         description: Game không tồn tại
  */
 router.get("/:game_id/friends", leaderboardController.getTopRankingOfFriendById);
+
+/**
+ * @openapi
+ * /api/leaderboards/{game_id}/my-rank:
+ *   get:
+ *     tags: [Leaderboard]
+ *     summary: Lấy xếp hạng của tôi trong 1 game cụ thể
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: game_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Xếp hạng trong game
+ */
+router.get("/:game_id/my-rank", leaderboardController.getMyRankByGameId);
 
 module.exports = router;
